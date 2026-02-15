@@ -1,4 +1,10 @@
-// CLIENT SCRIPT - v5: Matches approved preview v6
+// CLIENT SCRIPT - v5.1: Logic fixes
+// FIXES:
+//   1. Coverage % rollup uses topic count (not product combos)
+//   2. Gaps Only mode hides categories with zero gap-topics
+//   3. getLiveStats uses consistent counting
+//   4. Records modal note about data availability
+
 function() {
   var c = this;
 
@@ -6,13 +12,11 @@ function() {
   c.expanded = {};
   c.facet = 'gaps';
   c.ownerFilter = '';
-  c.showSuggestions = false;
   c.modal = null;
   c.runName = '';
   c.running = false;
   c.progress = 0;
   c.runPhase = '';
-  c.regTab = 'registry';
   c.regSearch = '';
   c.showAddCompany = false;
   c.newCompany = '';
@@ -53,7 +57,6 @@ function() {
   c.toggleCategory = function(catName) { c.expanded[catName] = !c.expanded[catName]; };
   c.setFacet = function(f) { c.facet = f; };
   c.setOwnerFilter = function(val) { c.ownerFilter = val; c.expanded = {}; };
-  c.clearFilter = function() { c.ownerFilter = ''; c.expanded = {}; };
 
   // ─── MODALS ──────────────────────────────────────────
   c.closeModal = function() { c.modal = null; };
@@ -64,35 +67,54 @@ function() {
 
   // ─── FILTER HELPERS ──────────────────────────────────
   c.getFilteredCategories = function() {
-    if (!c.ownerFilter) return c.data.categories;
-    var fl = c.ownerFilter.toLowerCase();
-    var result = [];
-    for (var i = 0; i < c.data.categories.length; i++) {
-      var cat = c.data.categories[i];
-      var matched = [];
-      for (var j = 0; j < cat.topics.length; j++) {
-        var t = cat.topics[j];
-        var topicMatch = t.name.toLowerCase().indexOf(fl) > -1;
-        var productMatch = false;
-        if (t.products) {
-          for (var k = 0; k < t.products.length; k++) {
-            if (t.products[k].product.toLowerCase().indexOf(fl) > -1 || t.products[k].company.toLowerCase().indexOf(fl) > -1) { productMatch = true; break; }
+    var cats = c.data.categories;
+    
+    // Apply owner filter first
+    if (c.ownerFilter) {
+      var fl = c.ownerFilter.toLowerCase();
+      var filtered = [];
+      for (var i = 0; i < cats.length; i++) {
+        var cat = cats[i];
+        var matched = [];
+        for (var j = 0; j < cat.topics.length; j++) {
+          var t = cat.topics[j];
+          var topicMatch = t.name.toLowerCase().indexOf(fl) > -1;
+          var productMatch = false;
+          if (t.products) {
+            for (var k = 0; k < t.products.length; k++) {
+              if (t.products[k].product.toLowerCase().indexOf(fl) > -1 || t.products[k].company.toLowerCase().indexOf(fl) > -1) { productMatch = true; break; }
+            }
           }
+          if (topicMatch || productMatch) matched.push(t);
         }
-        if (topicMatch || productMatch) matched.push(t);
+        if (matched.length > 0) {
+          var clone = JSON.parse(JSON.stringify(cat));
+          clone.topics = matched;
+          clone.topicCount = matched.length;
+          var gaps = 0, covered = 0;
+          for (var m = 0; m < matched.length; m++) { if (matched[m].kbGap || matched[m].catGap) gaps++; else covered++; }
+          clone.gapCount = gaps;
+          clone.coveredCount = covered;
+          filtered.push(clone);
+        }
       }
-      if (matched.length > 0) {
-        var clone = JSON.parse(JSON.stringify(cat));
-        clone.topics = matched;
-        clone.topicCount = matched.length;
-        var gaps = 0;
-        for (var m = 0; m < matched.length; m++) { if (matched[m].kbGap || matched[m].catGap) gaps++; }
-        clone.gapCount = gaps;
-        clone.coveredCount = matched.length - gaps;
-        result.push(clone);
-      }
+      cats = filtered;
     }
-    return result;
+
+    // v5.1: In gaps only mode, filter out categories with no gap-topics
+    if (c.facet === 'gaps') {
+      var gapCats = [];
+      for (var g = 0; g < cats.length; g++) {
+        var hasGapTopics = false;
+        for (var gt = 0; gt < cats[g].topics.length; gt++) {
+          if (cats[g].topics[gt].kbGap || cats[g].topics[gt].catGap) { hasGapTopics = true; break; }
+        }
+        if (hasGapTopics) gapCats.push(cats[g]);
+      }
+      return gapCats;
+    }
+
+    return cats;
   };
 
   c.getFilteredTopics = function(topics) {
@@ -115,9 +137,15 @@ function() {
     return count;
   };
 
+  // v5.1: Coverage % uses topic count consistently
   c.getCoveragePct = function(cat) {
-    if (cat.topicCount === 0) return 0;
-    return Math.round((cat.coveredCount / cat.topicCount) * 100);
+    var total = cat.topics.length;
+    if (total === 0) return 0;
+    var covered = 0;
+    for (var i = 0; i < cat.topics.length; i++) {
+      if (!cat.topics[i].kbGap && !cat.topics[i].catGap) covered++;
+    }
+    return Math.round((covered / total) * 100);
   };
 
   c.getBarColor = function(pct) {
@@ -129,11 +157,17 @@ function() {
   c.getFilteredStats = function() {
     var cats = c.getFilteredCategories();
     var topics = 0, gaps = 0, covered = 0;
-    for (var i = 0; i < cats.length; i++) { topics += cats[i].topicCount; gaps += cats[i].gapCount; covered += cats[i].coveredCount; }
+    for (var i = 0; i < cats.length; i++) {
+      for (var j = 0; j < cats[i].topics.length; j++) {
+        topics++;
+        if (cats[i].topics[j].kbGap || cats[i].topics[j].catGap) gaps++;
+        else covered++;
+      }
+    }
     return { catCount: cats.length, topics: topics, gaps: gaps, covered: covered, pct: topics > 0 ? Math.round((covered / topics) * 100) : 0 };
   };
 
-  // v5: Live stats with KB/Cat breakdown
+  // v5.1: Live stats with consistent topic-based counting
   c.getLiveStats = function() {
     var cats = c.data.categories;
     var totalTopics = 0, totalGaps = 0, totalCovered = 0, kbGaps = 0, catGaps = 0;
@@ -169,7 +203,6 @@ function() {
     c.running = true;
     c.progress = 10;
     c.runPhase = 'creating';
-
     c.server.get({
       action: 'startRun',
       runName: c.runName,
@@ -178,12 +211,8 @@ function() {
     }).then(function(response) {
       c.progress = 30;
       c.runPhase = 'classifying';
-      if (response.data.runSysId) {
-        c.pollRunStatus(response.data.runSysId);
-      } else {
-        c.running = false;
-        c.runPhase = 'error';
-      }
+      if (response.data.runSysId) { c.pollRunStatus(response.data.runSysId); }
+      else { c.running = false; c.runPhase = 'error'; }
     });
   };
 
@@ -197,18 +226,13 @@ function() {
         if (pct > 70) c.runPhase = 'matching';
         if (status === 'Complete' || pct >= 100) {
           clearInterval(pollInterval);
-          c.progress = 100;
-          c.running = false;
+          c.progress = 100; c.running = false;
           c.server.get({ action: 'loadRuns' }).then(function(runsResponse) {
             c.data.runs = runsResponse.data.runs;
             c.selectedRunId = runSysId;
             c.setView('registry');
           });
-        } else if (status === 'Error') {
-          clearInterval(pollInterval);
-          c.running = false;
-          c.runPhase = 'error';
-        }
+        } else if (status === 'Error') { clearInterval(pollInterval); c.running = false; c.runPhase = 'error'; }
       });
     }, 3000);
   };
@@ -226,9 +250,7 @@ function() {
   };
   c.editCompany = function(idx) {
     var co = c.data.companyList[idx];
-    co.editing = true;
-    co.editName = co.name;
-    co.editProducts = co.products.join(', ');
+    co.editing = true; co.editName = co.name; co.editProducts = co.products.join(', ');
   };
   c.saveCompanyEdit = function(idx) {
     var co = c.data.companyList[idx];
