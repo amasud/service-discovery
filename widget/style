@@ -1,0 +1,212 @@
+/* CSS - SCSS - v4.2 COMPLETE — paste this as your entire CSS */
+
+$navy: #1B2A32;
+$navy-md: #293E40;
+$navy-lt: #3E5463;
+$green: #2E7D57;
+$green-lt: #E8F5EE;
+$red: #C94040;
+$red-lt: #FDF0EF;
+$warm: #E8983E;
+$warm-lt: #FFF8F0;
+$bg: #F4F5F7;
+$border: #DFE3E8;
+$txt: #6B7D8A;
+$lt: #EEF0F2;
+$white: #FFFFFF;
+
+.sd-wrapper { color: $navy; max-width: 1100px; margin: 0 auto; }
+
+/* ═══════ SHARED ═══════════════════════════════════════ */
+.sd-card { background: $white; border: 1px solid $border; border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+.sd-page-title { font-size: 1.5rem; font-weight: 700; margin: 0 0 4px; }
+.sd-page-desc { font-size: 0.875rem; color: $txt; margin: 0 0 20px; }
+.sd-back-link { background: none; border: none; color: $navy-lt; text-decoration: underline; font-size: 0.875rem; font-weight: 600; cursor: pointer; padding: 0; margin-bottom: 12px; display: inline-block; }
+.sd-summary-text { font-size: 0.95rem; line-height: 1.6; color: $navy-lt; margin: 0; strong { color: $navy; } }
+.text-green { color: $green !important; }
+.text-red { color: $red !important; }
+
+.sd-btn-navy { background: $navy; color: white; border: none; border-radius: 10px; padding: 10px 20px; font-size: 0.875rem; font-weight: 600; cursor: pointer; &:hover { opacity: 0.85; } }
+.sd-btn-outline { background: transparent; border: 1px solid $border; border-radius: 8px; padding: 8px 16px; font-size: 0.875rem; font-weight: 600; color: $navy-lt; cursor: pointer; &:hover { background: $lt; } }
+.sd-btn-sm { background: $lt; border: none; border-radius: 8px; padding: 6px 12px; font-size: 0.75rem; font-weight: 600; color: $navy-lt; cursor: pointer; }
+.sd-btn-full { width: 100%; padding: 14px; font-size: 0.95rem; }
+.sd-btn-flex { flex: 1; }
+.sd-btn-confirm { background: $green-lt; color: $green; }
+.sd-btn-remove { background: none; color: $red; }
+.sd-btn-edit { background: $lt; color: $navy-lt; border: 1px solid $border; &:hover { background: $border; } }
+.sd-btn-white { background: white; color: $navy; border: none; border-radius: 10px; padding: 12px 24px; font-size: 0.875rem; font-weight: 600; cursor: pointer; &:hover { opacity: 0.9; } }
+.sd-btn-ghost { background: transparent; color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; padding: 12px 24px; font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+
+.sd-badge { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 99px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+.badge-red { background: $red-lt; color: $red; }
+.badge-green { background: $green-lt; color: $green; }
+.sd-pill-sm { display: inline-flex; padding: 2px 8px; border-radius: 99px; font-size: 0.7rem; font-weight: 600; background: $lt; color: $navy-lt; white-space: nowrap; margin: 2px 2px 2px 0; }
+
+.sd-input { width: 100%; padding: 10px 16px; border: 1px solid $border; border-radius: 8px; font-size: 0.875rem; background: $bg; outline: none; &:focus { border-color: $navy-lt; background: $white; } }
+.sd-select { appearance: auto; cursor: pointer; }
+.sd-link { font-weight: 600; text-decoration: underline; cursor: pointer; color: $navy-lt; &:hover { opacity: 0.7; } }
+.sd-link-red { color: $red; }
+.sd-link-green { color: $green; }
+
+/* ═══════ HOME ═════════════════════════════════════════ */
+.sd-home { padding-bottom: 40px; }
+.sd-hero { background: #1e3a3a; color: white; text-align: center; padding: 48px 24px 32px; border-radius: 0 0 16px 16px; }
+.sd-hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.1); padding: 6px 14px; border-radius: 99px; font-size: 0.75rem; margin-bottom: 16px; }
+.sd-dot { width: 8px; height: 8px; border-radius: 50%; background: $green; display: inline-block; }
+.sd-hero-title { font-size: 2rem; font-weight: 700; margin: 0 0 8px; }
+.sd-hero-sub { font-size: 0.95rem; opacity: 0.7; margin: 0 0 24px; }
+.sd-hero-actions { display: flex; gap: 12px; justify-content: center; }
+.sd-stats-bar { background: $navy-md; margin: -8px 24px 0; border-radius: 12px; padding: 20px; }
+.sd-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; }
+.sd-stat { text-align: center; padding: 8px; &:not(:last-child) { border-right: 1px solid rgba(255,255,255,0.1); } }
+.sd-stat-value { font-size: 1.5rem; font-weight: 700; color: white; }
+.sd-stat-red { color: $red; }
+.sd-stat-green { color: $green; }
+.sd-stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.5); margin-top: 2px; }
+.sd-home-cards { max-width: 800px; margin: 0 auto; padding: 32px 24px 0; }
+.sd-home-section-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: $txt; margin: 0 0 12px; font-weight: 600; }
+.sd-card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 32px; }
+.sd-quick-card { background: $navy-md; color: white; border-radius: 12px; padding: 20px; cursor: pointer; display: flex; flex-direction: column; gap: 12px; &:hover { opacity: 0.85; } }
+.sd-quick-icon { font-size: 1.2rem; opacity: 0.6; }
+.sd-quick-label { font-size: 0.875rem; font-weight: 600; }
+.sd-run-card { background: $navy-md; border-radius: 12px; padding: 16px 20px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; color: white; &:hover { opacity: 0.85; } }
+.sd-run-name { font-size: 0.875rem; font-weight: 600; margin-bottom: 4px; }
+.sd-run-meta { display: flex; gap: 12px; font-size: 0.75rem; opacity: 0.6; align-items: center; }
+.sd-run-pill { background: rgba(255,255,255,0.15); padding: 2px 8px; border-radius: 99px; font-size: 0.65rem; font-weight: 600; }
+.sd-run-complete { background: rgba(46, 125, 87, 0.3); color: $green-lt; }
+.sd-run-processing { background: rgba(232, 152, 62, 0.3); color: $warm-lt; }
+.sd-run-arrow { font-size: 1.2rem; opacity: 0.4; }
+.sd-no-runs { padding: 24px; text-align: center; }
+.sd-no-runs-text { font-size: 0.875rem; color: $txt; }
+
+/* ═══════ CONFIGURE ════════════════════════════════════ */
+.sd-configure { max-width: 680px; margin: 0 auto; padding: 32px 24px; }
+.sd-source-card { background: $white; border: 1px solid $border; border-radius: 12px; margin-bottom: 12px; overflow: hidden; &.active { border-color: $navy; } }
+.sd-source-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; cursor: pointer; }
+.sd-source-left { display: flex; align-items: center; gap: 12px; }
+.sd-source-name { font-size: 0.9rem; font-weight: 600; color: $navy; }
+.sd-source-desc { font-size: 0.75rem; color: $txt; margin-top: 2px; }
+.sd-source-table { font-size: 0.7rem; font-family: monospace; color: $txt; background: $lt; padding: 3px 8px; border-radius: 4px; }
+.sd-source-body { padding: 0 20px 16px; border-top: 1px solid $lt; padding-top: 16px; }
+.sd-filter-note { font-size: 0.8rem; color: $txt; margin: 0; }
+.sd-checkbox { width: 20px; height: 20px; border: 2px solid $border; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: white; flex-shrink: 0; &.checked { background: $navy; border-color: $navy; } }
+.sd-source-summary { display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem; color: $navy; strong { font-weight: 700; } }
+.sd-source-pills { display: flex; gap: 6px; }
+.sd-progress-card { margin-top: 16px; }
+.sd-progress-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+.sd-progress-label { font-size: 0.85rem; color: $navy; }
+.sd-progress-pct { font-size: 0.85rem; font-weight: 700; color: $navy; }
+.sd-filter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 4px 0; }
+.sd-filter-field { display: flex; flex-direction: column; gap: 4px; }
+.sd-filter-label-sm { font-size: 0.75rem; font-weight: 600; color: $navy-lt; }
+
+/* ═══════ REGISTRY ═════════════════════════════════════ */
+.sd-registry { max-width: 800px; margin: 0 auto; padding: 32px 24px; }
+.sd-tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid $lt; }
+.sd-tab { background: none; border: none; padding: 10px 20px; font-size: 0.85rem; font-weight: 600; color: $txt; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; &.active { color: $navy; border-color: $navy; } }
+.sd-reg-card { background: $white; border: 1px solid $border; border-radius: 10px; margin-bottom: 8px; padding: 14px 18px; &.confirmed { border-left: 3px solid $green; } }
+.sd-reg-card-main { display: flex; justify-content: space-between; align-items: center; }
+.sd-reg-left { display: flex; align-items: center; gap: 12px; }
+.sd-reg-status { width: 28px; height: 28px; border-radius: 50%; background: $lt; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: $txt; font-weight: 700; &.done { background: $green-lt; color: $green; } }
+.sd-reg-company { font-size: 0.9rem; font-weight: 600; color: $navy; }
+.sd-reg-products { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.sd-reg-right { display: flex; align-items: center; gap: 8px; }
+.sd-reg-mentions { font-size: 0.75rem; color: $txt; }
+.sd-reg-edit-form { padding: 0 18px 14px; }
+.sd-edit-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; label { font-size: 0.75rem; font-weight: 600; color: $navy-lt; display: block; margin-bottom: 4px; } }
+.sd-add-company-btn { background: none; border: 2px dashed $border; border-radius: 10px; padding: 14px; width: 100%; text-align: center; font-size: 0.85rem; font-weight: 600; color: $txt; cursor: pointer; margin-bottom: 16px; }
+.sd-add-form { margin-bottom: 16px; }
+.sd-reg-actions { display: flex; gap: 12px; margin-top: 20px; }
+.sd-unmatched-summary { text-align: center; padding: 32px; }
+.sd-run-context { background: $lt; border: 1px solid $border; margin-bottom: 16px; }
+.sd-run-context-inner { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sd-run-meta-inline { font-size: 0.75rem; color: $txt; }
+
+/* ═══════ DASHBOARD ════════════════════════════════════ */
+.sd-dashboard { padding: 24px; }
+.sd-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.sd-header-right { display: flex; align-items: center; gap: 12px; }
+.sd-run-selector { min-width: 280px; }
+.sd-run-selector .sd-select { width: 100%; font-size: 0.8rem; }
+.sd-summary-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 0; }
+.sd-summary-inline { flex: 1; margin-bottom: 12px; }
+.sd-facet-toggle { display: flex; gap: 0; border: 1px solid $border; border-radius: 8px; overflow: hidden; flex-shrink: 0; margin-top: 4px; }
+.sd-facet-btn { background: $white; border: none; padding: 6px 14px; font-size: 0.75rem; font-weight: 600; color: $txt; cursor: pointer; &.active { background: $navy; color: white; } & + & { border-left: 1px solid $border; } }
+
+.sd-filter-card { margin-bottom: 16px; }
+.sd-filter-label { font-size: 0.85rem; font-weight: 700; color: $navy; margin-bottom: 8px; display: block; }
+.sd-filter-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.sd-filter-input-wrap { flex: 1; position: relative; }
+.sd-filter-hint { font-size: 0.75rem; color: $txt; margin: 4px 0 0; a { color: $navy-lt; } }
+.sd-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: $white; border: 1px solid $border; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 10; max-height: 200px; overflow-y: auto; }
+.sd-suggestion-item { padding: 8px 16px; font-size: 0.85rem; cursor: pointer; &:hover { background: $lt; } &:last-child { border-radius: 0 0 8px 8px; } }
+
+/* Table */
+.sd-table { background: $white; border: 1px solid $border; border-radius: 12px; overflow: hidden; }
+.sd-table-header { display: flex; align-items: center; padding: 10px 16px; background: $lt; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: $navy-lt; border-bottom: 1px solid $border; }
+.sd-table-body { }
+.sd-col-topics { width: 60px; text-align: center; flex-shrink: 0; }
+.sd-col-name { flex: 1; min-width: 0; }
+.sd-col-records { width: 80px; text-align: center; flex-shrink: 0; }
+.sd-col-records-val { font-size: 0.95rem; font-weight: 600; }
+.sd-col-trend { width: 70px; text-align: center; flex-shrink: 0; }
+.sd-col-gaps { width: 130px; text-align: center; flex-shrink: 0; }
+.sd-col-coverage { width: 130px; text-align: center; flex-shrink: 0; }
+.sd-cat-row { display: flex; align-items: center; padding: 14px 16px; cursor: pointer; border-bottom: 1px solid $lt; &:hover { background: rgba(0,0,0,0.02); } }
+.sd-topic-count { font-size: 1.1rem; color: $navy; }
+.sd-arrow { display: inline-block; font-size: 0.6rem; margin-right: 8px; transition: transform 0.15s; color: $txt; &.open { transform: rotate(90deg); } }
+.sd-cat-info { display: flex; flex-direction: column; }
+.sd-cat-name { font-size: 1rem; font-weight: 700; color: $navy; }
+.sd-cat-pct { font-size: 0.8rem; color: $txt; }
+.sd-trend-up { color: $red; font-size: 0.85rem; font-weight: 600; }
+.sd-trend-down { color: $green; font-size: 0.85rem; font-weight: 600; }
+.sd-trend-flat { color: $txt; font-size: 0.85rem; }
+.sd-progress-bar { height: 6px; background: $lt; border-radius: 3px; overflow: hidden; width: 70px; display: inline-block; vertical-align: middle; }
+.sd-progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.sd-coverage-pct { font-size: 0.85rem; font-weight: 600; color: $navy-lt; margin-left: 6px; }
+.sd-expand-area { background: $bg; border-bottom: 1px solid $border; }
+.sd-no-gaps { padding: 16px 24px; font-size: 0.85rem; color: $txt; text-align: center; }
+.sd-gap-dash { color: $txt; }
+.sd-coverage-link-col { display: flex; justify-content: center; }
+.sd-coverage-link-col .sd-link { font-size: 0.85rem; }
+.sd-empty { padding: 40px; text-align: center; font-size: 0.9rem; color: $txt; }
+
+/* Topic header row */
+.sd-topic-header { display: flex; align-items: center; padding: 10px 16px; border-bottom: 1px solid $border; }
+.sd-topic-header-name { display: flex; flex-direction: column; }
+.sd-topic-name-bold { font-size: 0.95rem; font-weight: 700; text-transform: uppercase; color: $navy; }
+.sd-topic-solution { font-size: 0.8rem; color: $txt; margin-top: 2px; }
+
+/* Product rows under topics */
+.sd-product-row { display: flex; align-items: center; padding: 8px 16px 8px 32px; border-bottom: 1px solid $lt; }
+.sd-product-name-col { display: flex; flex-direction: column; gap: 2px; }
+.sd-product-pill { display: inline-flex; padding: 4px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; background: $green-lt; color: $green;
+  &.gap { background: $red-lt; color: $red; }
+  &.covered { background: $green-lt; color: $green; }
+}
+.sd-product-company { font-size: 0.7rem; color: $txt; }
+
+/* Records link */
+.sd-col-records .sd-link { font-size: 0.95rem; }
+
+/* Modal */
+.sd-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.sd-modal { background: $white; border-radius: 16px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; }
+.sd-modal-header { padding: 24px 24px 16px; position: relative; }
+.sd-modal-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: $txt; font-weight: 600; }
+.sd-modal-title { font-size: 1.1rem; font-weight: 700; color: $navy; margin: 6px 0 0; }
+.sd-modal-pills { margin-top: 8px; }
+.sd-modal-close { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 1.3rem; cursor: pointer; color: $txt; &:hover { color: $navy; } }
+.sd-modal-context { padding: 0 24px 16px; font-size: 0.85rem; color: $navy-lt; line-height: 1.5; strong { color: $navy; } }
+.sd-modal-context-gap { background: $red-lt; margin: 0 16px; padding: 16px; border-radius: 8px; }
+.sd-modal-context-gap + .sd-modal-context-gap { margin-top: 8px; }
+.sd-modal-context-gap .sd-badge { vertical-align: middle; }
+.sd-modal-context-covered { background: $green-lt; margin: 0 16px; padding: 16px; border-radius: 8px; }
+.sd-modal-body { padding: 0 24px 24px; }
+.sd-modal-record { border: 1px solid $border; border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; }
+.sd-record-id { font-size: 0.7rem; font-family: monospace; color: $txt; }
+.sd-record-title { font-size: 0.85rem; font-weight: 500; color: $navy; margin: 4px 0 0; }
+.sd-record-notes { font-size: 0.8rem; color: $navy-lt; margin: 4px 0 0; padding-top: 6px; border-top: 1px solid $lt; }
+.sd-modal-empty { text-align: center; padding: 24px; color: $txt; p { margin: 0; } }
+.sd-modal-patterns-header { margin-bottom: 12px; }
+.sd-modal-patterns-sub { font-size: 0.75rem; color: $txt; margin-top: 4px; }
