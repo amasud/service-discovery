@@ -1,0 +1,50 @@
+# Service Discovery — Gap Tracker
+
+## Open Issues
+
+### Dashboard
+- [ ] Font sizes still need review after SN deployment
+- [ ] Coverage % rollup — needs validation with real classified data
+- [ ] Records click shows empty when no classifications exist for that topic (expected until AI runs)
+- [ ] Gaps Only filter — verify with real data after classification runs
+
+### New Run
+- [ ] Filter fields (Assignment Groups, KB, Catalog) are text inputs — should be multi-select reference pickers in Phase 2
+- [ ] Run execution is synchronous — should be async (Flow Designer) for large datasets
+- [ ] Wire "Classify Records" button to call sd_classify_supply.js instead of keyword matcher
+
+### Registry
+- [ ] Edit/Save doesn't persist to server (client-side only)
+- [ ] Add Company doesn't persist to server
+- [ ] Need "Merge" functionality for duplicate products
+- [ ] Unmatched tab is empty placeholder
+
+### AI / Classification
+- [ ] Batch script takes ~3 sec per record — 100 records = 5 min. Consider async execution.
+- [ ] Need to add u_extracted_company and u_extracted_product fields to classification table
+- [ ] Gap flags (u_kb_gap, u_catalog_gap) should be computed dynamically, not set per-record
+- [ ] Test with real instance data — current demo data is limited
+- [ ] Build SD - Classify Demand skill (Pass 3: incidents)
+- [ ] Build gap analysis logic (Pass 4: compare supply vs demand)
+
+### Data Model
+- [ ] u_x_snc_sd_classification needs u_extracted_company (string) field
+- [ ] u_x_snc_sd_classification needs u_extracted_product (string) field
+
+## Completed
+- [x] GitHub repo established with widget code
+- [x] Data model documented (data-model/data_model.md)
+- [x] Preview artifact workflow for UI iteration
+- [x] NASK skill created and tested (SDClassifySupply)
+- [x] Batch classification script written and debugged (payload format, response parsing)
+- [x] Coverage modal split into Covered/Gaps sections
+- [x] Gap columns show type + count at all 3 levels
+- [x] ServiceNow portal styling applied
+
+## Next Steps (Priority Order)
+1. Run batch classification on real KB + catalog data
+2. Review product registry results
+3. Build SD - Classify Demand skill for incidents
+4. Wire classification into the widget's "Classify Records" button
+5. Compute gap flags dynamically from classification data
+6. Dashboard polish pass
