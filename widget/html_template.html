@@ -1,168 +1,197 @@
-<!-- HTML TEMPLATE - v5.1 -->
+<!-- HTML TEMPLATE - v6: Company → Product → Topic hierarchy -->
 <div class="sd-wrapper">
 
   <!-- ═══════════ HOME ═══════════════════════════════════ -->
-  <div ng-if="c.view === 'home'" class="sd-home">
+  <div ng-if="c.view === 'home'">
     <div class="sd-hero">
       <div class="sd-hero-inner">
-        <div class="sd-hero-title-row">
-          <h1 class="sd-hero-title">Service Discovery</h1>
-          <svg class="sd-sparkle" width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="url(#sparkGrad)"/>
-            <path d="M20 3L21 6L24 7L21 8L20 11L19 8L16 7L19 6L20 3Z" fill="#00C0B5" opacity="0.7"/>
-            <path d="M4 17L5 19L7 20L5 21L4 23L3 21L1 20L3 19L4 17Z" fill="#00875A" opacity="0.5"/>
-            <defs><linearGradient id="sparkGrad" x1="4" y1="2" x2="20" y2="20"><stop stop-color="#00C0B5"/><stop offset="1" stop-color="#00875A"/></linearGradient></defs>
-          </svg>
+        <div class="sd-hero-title-row"><h1 class="sd-hero-title">Service Discovery</h1>
+          <svg class="sd-sparkle" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="url(#sg)"/><path d="M20 3L21 6L24 7L21 8L20 11L19 8L16 7L19 6L20 3Z" fill="#00C0B5" opacity="0.7"/><defs><linearGradient id="sg" x1="4" y1="2" x2="20" y2="20"><stop stop-color="#00C0B5"/><stop offset="1" stop-color="#00875A"/></linearGradient></defs></svg>
         </div>
         <p class="sd-hero-sub">Find what employees need. See what's covered. Build what's missing.</p>
       </div>
     </div>
     <div class="sd-home-body">
-      <input type="text" class="sd-search-input" placeholder="Search for recent run or product registry...">
-      <div class="sd-home-grid">
-        <div class="sd-home-left">
-          <div class="sd-card">
-            <h2 class="sd-section-title">Overview</h2>
-            <div class="sd-overview-grid">
-              <div class="sd-overview-item" ng-click="c.setView('dashboard')"><div class="sd-overview-value">{{c.data.catCount}}</div><div class="sd-overview-label">Opportunities</div></div>
-              <div class="sd-overview-item" ng-click="c.setView('dashboard')"><div class="sd-overview-value">{{c.data.totalTopics}}</div><div class="sd-overview-label">Topics</div></div>
-              <div class="sd-overview-item" ng-click="c.setView('dashboard')"><div class="sd-overview-value">{{c.data.coverPct}}%</div><div class="sd-overview-label">Coverage</div></div>
-            </div>
-          </div>
-          <div class="sd-card">
-            <h2 class="sd-section-title">Quick links</h2>
-            <div class="sd-quicklinks-grid">
-              <div class="sd-quicklink" ng-click="c.setView('configure')"><div class="sd-quicklink-name">New run</div><div class="sd-quicklink-desc">Start a new analysis</div></div>
-              <div class="sd-quicklink" ng-click="c.setView('registry')"><div class="sd-quicklink-name">Product registry</div><div class="sd-quicklink-desc">Manage companies &amp; products</div></div>
-              <div class="sd-quicklink" ng-click="c.setView('dashboard')"><div class="sd-quicklink-name">Dashboard</div><div class="sd-quicklink-desc">View service opportunities</div></div>
-            </div>
-          </div>
+      <div class="sd-home-cards">
+        <div class="sd-home-card" ng-click="c.goNewReport()">
+          <div class="sd-home-card-title">Create new report</div>
+          <div class="sd-home-card-desc">Run supply and demand analysis through a guided 4-step process</div>
         </div>
-        <div class="sd-home-right">
-          <div class="sd-card">
-            <h2 class="sd-section-title">Recent runs</h2>
-            <div class="sd-run-item" ng-repeat="run in c.data.runs | limitTo:3" ng-click="c.openRun(run)">
-              <div><div class="sd-run-name">{{run.name}}</div><div class="sd-run-meta">{{run.date}} &middot; {{run.totalAnalyzed}} records</div></div>
-              <span class="sd-run-gaps">{{run.gapsFound}} &rsaquo;</span>
-            </div>
-            <div class="sd-run-more" ng-if="c.data.runs.length > 3"><span class="sd-link-blue">View more &rsaquo;</span></div>
-            <div ng-if="c.data.runs.length === 0" class="sd-empty-sm">No runs yet. <a class="sd-link-blue" ng-click="c.setView('configure')">Create your first run &rarr;</a></div>
-          </div>
+        <div class="sd-home-card" ng-click="c.goReports()">
+          <div class="sd-home-card-title">View existing reports</div>
+          <div class="sd-home-card-desc">Review completed or in-progress reports and their results</div>
+        </div>
+        <div class="sd-home-card" ng-click="c.goRegistry()">
+          <div class="sd-home-card-title">View registry</div>
+          <div class="sd-home-card-desc">Manage the global company and product registry</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══════════ NEW RUN ════════════════════════════════ -->
-  <div ng-if="c.view === 'configure'" class="sd-page">
+  <!-- ═══════════ NEW REPORT (Step 1: Supply Config) ════ -->
+  <div ng-if="c.view === 'new-report'" class="sd-page">
     <div class="sd-teal-bar"></div>
     <div class="sd-page-body sd-narrow">
-      <button class="sd-back-btn" ng-click="c.setView('home')">&larr; Back</button>
-      <h1 class="sd-page-title">New analysis run</h1>
-      <p class="sd-page-desc">Select sources and configure filters.</p>
-      <div class="sd-card"><h3 class="sd-card-heading">Incidents</h3>
-        <div class="sd-filter-row-2col"><div class="sd-field"><label>Created from</label><input type="date" class="sd-input" ng-model="c.runFilters.dateFrom"></div><div class="sd-field"><label>Created to</label><input type="date" class="sd-input" ng-model="c.runFilters.dateTo"></div></div>
-        <div class="sd-field"><label>Assignment groups</label><input type="text" class="sd-input" ng-model="c.runFilters.assignmentGroup" placeholder="Type to search groups..."></div>
-      </div>
+      <button class="sd-back-btn" ng-click="c.setView('home')">&larr; Home</button>
+      <h1 class="sd-page-title">Create new report</h1>
+      <p class="sd-page-desc">Step 1 of 4 &mdash; classify your content supply.</p>
+      <div class="sd-steps"><div class="sd-step active">1. Supply analysis</div><div class="sd-step">2. Review registry</div><div class="sd-step">3. Demand analysis</div><div class="sd-step">4. View gaps</div></div>
+      <div class="sd-card"><h3 class="sd-card-heading">Report name</h3><input type="text" class="sd-input" ng-model="c.reportName" placeholder="e.g., February 2026 analysis"></div>
       <div class="sd-card"><h3 class="sd-card-heading">KB articles</h3>
-        <div class="sd-field"><label>Knowledge base</label><input type="text" class="sd-input" ng-model="c.runFilters.kbName" placeholder="Type to search..."></div>
-        <div class="sd-field"><label>Workflow state</label><select class="sd-input sd-select" ng-model="c.runFilters.kbState"><option value="published">Published</option><option value="">All</option><option value="draft">Draft</option></select></div>
+        <div class="sd-filter-row-2col"><div class="sd-field"><label>Knowledge base</label><input type="text" class="sd-input" placeholder="Type to search..."></div><div class="sd-field"><label>Workflow state</label><select class="sd-input sd-select" ng-model="c.supplyFilters.kbState"><option value="published">Published</option><option value="">All</option></select></div></div>
       </div>
-      <div class="sd-card"><h3 class="sd-card-heading">Catalog items</h3>
-        <div class="sd-field"><label>Catalogs</label><input type="text" class="sd-input" ng-model="c.runFilters.catalogName" placeholder="Type to search catalogs..."></div>
-      </div>
-      <div class="sd-card"><div class="sd-field"><label>Run name <span class="sd-required">*</span></label><input type="text" class="sd-input" ng-model="c.runName" placeholder="e.g., Feb 15 &mdash; full analysis" required></div></div>
-      <button class="sd-btn-primary sd-btn-full" ng-click="c.startRun()" ng-disabled="!c.runName">Classify records</button>
-      <div class="sd-card sd-progress-card" ng-if="c.running">
-        <div class="sd-progress-header"><span ng-if="c.runPhase === 'creating'">Creating run...</span><span ng-if="c.runPhase === 'classifying'">Classifying records...</span><span ng-if="c.runPhase === 'extracting'">Extracting products...</span><span ng-if="c.runPhase === 'matching'">Matching to registry...</span><span ng-if="c.runPhase === 'error'" class="text-red">Error occurred.</span><span class="sd-progress-pct">{{c.progress | number:0}}%</span></div>
-        <div class="sd-progress-bar"><div class="sd-progress-fill" ng-style="{'width': c.progress + '%'}"></div></div>
-      </div>
+      <div class="sd-card"><h3 class="sd-card-heading">Catalog items</h3><div class="sd-field"><label>Catalogs</label><input type="text" class="sd-input" placeholder="Type to search catalogs..."></div></div>
+      <button class="sd-btn-primary sd-btn-full" ng-click="c.loadSupplyResults()">Run supply analysis</button>
     </div>
   </div>
 
-  <!-- ═══════════ REGISTRY ═══════════════════════════════ -->
-  <div ng-if="c.view === 'registry'" class="sd-page">
+  <!-- ═══════════ SUPPLY RESULTS ════════════════════════ -->
+  <div ng-if="c.view === 'supply-results'" class="sd-page">
+    <div class="sd-teal-bar"></div>
+    <div class="sd-page-body">
+      <button class="sd-back-btn" ng-click="c.setView('new-report')">&larr; Back</button>
+      <h1 class="sd-page-title">Content supply results</h1>
+      <p class="sd-page-desc">Step 1 complete &mdash; review what was classified.</p>
+      <div class="sd-steps"><div class="sd-step done">1. Supply analysis</div><div class="sd-step">2. Review registry</div><div class="sd-step">3. Demand analysis</div><div class="sd-step">4. View gaps</div></div>
+
+      <div class="sd-card" ng-init="ss = c.getSupplyStats()">
+        <h3 class="sd-card-heading">Supply summary</h3>
+        <p class="sd-brief-text">Found <strong>{{ss.kb}} KB articles</strong> and <strong>{{ss.catalog}} catalog items</strong> across <strong>{{ss.products}} products</strong> covering <strong>{{ss.topics}} topics</strong>.</p>
+      </div>
+
+      <div class="sd-card sd-search-card"><input type="text" class="sd-input" ng-model="c.search" placeholder="Search for a company or product..."></div>
+
+      <div class="sd-table">
+        <div class="sd-table-header"><span class="sd-col-name">Company / Product / Topic</span><span class="sd-col-sm">KB</span><span class="sd-col-sm">Catalog</span></div>
+        <div ng-repeat="company in c.data.supplyData.companies" ng-if="c.matchesSearch(company)">
+          <div class="sd-row-l1" ng-click="c.toggle(company.name)">
+            <span class="sd-col-name"><span class="sd-arrow" ng-class="{'open': c.isExpanded(company.name)}">&#9654;</span><strong>{{company.name}}</strong><span class="sd-meta-inline">{{company.products.length}} product{{company.products.length !== 1 ? 's' : ''}}</span></span>
+            <span class="sd-col-sm sd-val">{{company.totalKB}}</span>
+            <span class="sd-col-sm sd-val">{{company.totalCatalog}}</span>
+          </div>
+          <div ng-if="c.isExpanded(company.name)">
+            <div ng-repeat="product in company.products">
+              <div class="sd-row-l2" ng-click="c.toggle(company.name + product.name)">
+                <span class="sd-col-name"><span class="sd-arrow" ng-class="{'open': c.isExpanded(company.name + product.name)}">&#9654;</span><span class="sd-l2-name">{{product.name}}</span><span class="sd-meta-inline">{{product.topics.length}} topic{{product.topics.length !== 1 ? 's' : ''}}</span></span>
+                <span class="sd-col-sm sd-val">{{product.totalKB}}</span>
+                <span class="sd-col-sm sd-val">{{product.totalCatalog}}</span>
+              </div>
+              <div ng-if="c.isExpanded(company.name + product.name)">
+                <div class="sd-row-l3" ng-repeat="topic in product.topics">
+                  <span class="sd-col-name"><span class="sd-l3-name">{{topic.name}}</span><span class="sd-l3-parent">{{topic.parent}}</span></span>
+                  <span class="sd-col-sm sd-val" ng-class="{'text-green': topic.kb > 0}">{{topic.kb}}</span>
+                  <span class="sd-col-sm sd-val" ng-class="{'text-green': topic.catalog > 0}">{{topic.catalog}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sd-nav-footer"><button class="sd-btn-primary" ng-click="c.goRegistry(); c.setView('review-registry')">Next: Review registry &rarr;</button></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ REVIEW REGISTRY (Step 2) ══════════════ -->
+  <div ng-if="c.view === 'review-registry'" class="sd-page">
     <div class="sd-teal-bar"></div>
     <div class="sd-page-body sd-medium">
-      <button class="sd-back-btn" ng-click="c.setView('home')">&larr; Home</button>
-      <h1 class="sd-page-title">Product registry</h1>
-      <p class="sd-page-desc">Companies and products from your analysis runs.</p>
-      <div class="sd-reg-controls">
-        <select class="sd-input sd-select sd-reg-run-select" ng-model="c.selectedRunId" ng-change="c.selectRun(c.selectedRunId)"><option ng-repeat="run in c.data.runs" value="{{run.sys_id}}">{{run.name}} ({{run.date}})</option></select>
-        <input type="text" class="sd-input" ng-model="c.regSearch" placeholder="Search company or product...">
-      </div>
-      <div class="sd-reg-card" ng-repeat="co in c.data.companyList track by $index" ng-class="{'confirmed': co.confirmed}" ng-show="c.matchesRegSearch(co)">
+      <button class="sd-back-btn" ng-click="c.setView('supply-results')">&larr; Back</button>
+      <h1 class="sd-page-title">Review product registry</h1>
+      <p class="sd-page-desc">Step 2 of 4 &mdash; confirm or remove extracted companies and products.</p>
+      <div class="sd-steps"><div class="sd-step done">1. Supply analysis</div><div class="sd-step active">2. Review registry</div><div class="sd-step">3. Demand analysis</div><div class="sd-step">4. View gaps</div></div>
+      <div class="sd-card sd-search-card"><input type="text" class="sd-input" ng-model="c.search" placeholder="Search company or product..."></div>
+      <div class="sd-reg-card" ng-repeat="co in c.data.registry" ng-if="c.matchesRegistrySearch(co)" ng-class="{'confirmed': co.verified}">
         <div class="sd-reg-card-main">
-          <div class="sd-reg-left"><div class="sd-reg-status" ng-class="{'done': co.confirmed}">{{co.confirmed ? '&#10003;' : '?'}}</div><div><div class="sd-reg-company">{{co.name}}</div><div class="sd-reg-products"><span class="sd-pill" ng-repeat="p in co.products">{{p}}</span></div></div></div>
-          <div class="sd-reg-right"><span class="sd-reg-mentions">{{co.totalMentions}} mentions</span><button class="sd-btn-sm sd-btn-edit" ng-click="c.editCompany($index)">Edit</button><button class="sd-btn-sm sd-btn-confirm" ng-if="!co.confirmed" ng-click="c.confirmCompany($index)">Confirm</button></div>
+          <div class="sd-reg-left"><div class="sd-reg-status" ng-class="{'done': co.verified}">{{co.verified ? '&#10003;' : '?'}}</div><div><div class="sd-reg-company">{{co.name}}</div><div class="sd-reg-products"><span class="sd-pill" ng-repeat="p in co.products">{{p.name}}</span></div></div></div>
+          <div class="sd-reg-right">
+            <button class="sd-btn-sm sd-btn-confirm" ng-if="!co.verified" ng-repeat="p in co.products" ng-click="c.confirmProduct(p.sys_id)">Confirm</button>
+            <button class="sd-btn-sm sd-btn-edit">Edit</button>
+          </div>
         </div>
-        <div class="sd-reg-edit-form" ng-if="co.editing"><div class="sd-filter-row-2col"><div class="sd-field"><label>Company</label><input type="text" class="sd-input" ng-model="co.editName"></div><div class="sd-field"><label>Products</label><input type="text" class="sd-input" ng-model="co.editProducts"></div></div><div class="sd-edit-actions"><button class="sd-btn-primary sd-btn-sm" ng-click="c.saveCompanyEdit($index)">Save</button><button class="sd-btn-sm" ng-click="co.editing = false">Cancel</button></div></div>
       </div>
-      <div class="sd-add-company-btn" ng-if="!c.showAddCompany" ng-click="c.toggleAddCompany()">+ Add company</div>
-      <div class="sd-card" ng-if="c.showAddCompany"><strong>Add a new company</strong><div class="sd-filter-row-2col" style="margin-top: 12px;"><div class="sd-field"><label>Company</label><input type="text" class="sd-input" ng-model="c.newCompany" placeholder="e.g., Zoom"></div><div class="sd-field"><label>Products</label><input type="text" class="sd-input" ng-model="c.newProducts" placeholder="Comma-separated"></div></div><div class="sd-edit-actions"><button class="sd-btn-primary sd-btn-sm" ng-click="c.addCompany()">Add</button><button class="sd-btn-sm" ng-click="c.toggleAddCompany()">Cancel</button></div></div>
+      <div class="sd-add-btn" ng-if="!c.showAddCompany" ng-click="c.toggleAddCompany()">+ Add company</div>
+      <div class="sd-card" ng-if="c.showAddCompany">
+        <strong>Add a new company and product</strong>
+        <div class="sd-filter-row-2col" style="margin-top: 12px;"><div class="sd-field"><label>Company</label><input type="text" class="sd-input" ng-model="c.newCompanyName" placeholder="e.g., Zoom"></div><div class="sd-field"><label>Product</label><input type="text" class="sd-input" ng-model="c.newProductName" placeholder="e.g., Zoom Meetings"></div></div>
+        <div class="sd-edit-actions"><button class="sd-btn-primary sd-btn-sm" ng-click="c.addProduct()">Add</button><button class="sd-btn-sm" ng-click="c.toggleAddCompany()">Cancel</button></div>
+      </div>
+      <div class="sd-nav-footer"><button class="sd-btn-primary" ng-click="c.setView('demand-config')">Next: Run demand analysis &rarr;</button></div>
     </div>
   </div>
 
-  <!-- ═══════════ DASHBOARD ══════════════════════════════ -->
-  <div ng-if="c.view === 'dashboard'" class="sd-page">
+  <!-- ═══════════ DEMAND CONFIG (Step 3) ════════════════ -->
+  <div ng-if="c.view === 'demand-config'" class="sd-page">
+    <div class="sd-teal-bar"></div>
+    <div class="sd-page-body sd-narrow">
+      <button class="sd-back-btn" ng-click="c.setView('review-registry')">&larr; Back</button>
+      <h1 class="sd-page-title">Incident demand analysis</h1>
+      <p class="sd-page-desc">Step 3 of 4 &mdash; classify incidents against your taxonomy and registry.</p>
+      <div class="sd-steps"><div class="sd-step done">1. Supply analysis</div><div class="sd-step done">2. Review registry</div><div class="sd-step active">3. Demand analysis</div><div class="sd-step">4. View gaps</div></div>
+      <div class="sd-card"><h3 class="sd-card-heading">Incident filters</h3>
+        <div class="sd-filter-row-2col"><div class="sd-field"><label>Created from</label><input type="date" class="sd-input" ng-model="c.demandFilters.dateFrom"></div><div class="sd-field"><label>Created to</label><input type="date" class="sd-input" ng-model="c.demandFilters.dateTo"></div></div>
+        <div class="sd-field"><label>Assignment groups</label><input type="text" class="sd-input" ng-model="c.demandFilters.assignmentGroup" placeholder="Type to search..."></div>
+        <div class="sd-field"><label>Record limit</label><select class="sd-input sd-select" ng-model="c.demandFilters.limit"><option value="50">50</option><option value="100">100</option><option value="250">250</option><option value="500">500</option></select></div>
+      </div>
+      <button class="sd-btn-primary sd-btn-full" ng-click="c.loadGaps()">Run demand analysis</button>
+    </div>
+  </div>
+
+  <!-- ═══════════ GAPS VIEW (Step 4) ═══════════════════ -->
+  <div ng-if="c.view === 'gaps'" class="sd-page">
     <div class="sd-teal-bar"></div>
     <div class="sd-page-body">
       <button class="sd-back-btn" ng-click="c.setView('home')">&larr; Home</button>
-      <h1 class="sd-page-title">Service opportunities</h1>
-      <div class="sd-dash-header">
-        <select class="sd-input sd-select sd-run-select" ng-model="c.selectedRunId" ng-change="c.selectRun(c.selectedRunId)"><option value="">All runs</option><option ng-repeat="run in c.data.runs" value="{{run.sys_id}}">{{run.name}} ({{run.date}})</option></select>
+      <h1 class="sd-page-title">Supply gaps</h1>
+      <p class="sd-page-desc">Topics with incident demand but missing content supply.</p>
+      <div class="sd-steps"><div class="sd-step done">1. Supply analysis</div><div class="sd-step done">2. Review registry</div><div class="sd-step done">3. Demand analysis</div><div class="sd-step active">4. View gaps</div></div>
+
+      <div class="sd-card" ng-init="gs = c.getGapStats()">
+        <h3 class="sd-card-heading">Gap summary</h3>
+        <p class="sd-brief-text">Across <strong>{{gs.topics}} active topics</strong> with <strong>{{gs.incidents}} incidents</strong>, <strong class="text-green">{{gs.covered}} are covered</strong> and <strong class="text-red">{{gs.gaps}} have gaps</strong>. Coverage: <strong ng-class="{'text-green': gs.pct >= 50, 'text-red': gs.pct < 50}">{{gs.pct}}%</strong>.</p>
       </div>
 
-      <div class="sd-card"><label class="sd-card-heading">Search for a company or product</label><input type="text" class="sd-input" ng-model="c.ownerFilter" ng-change="c.setOwnerFilter(c.ownerFilter)" placeholder="e.g. Microsoft Teams, Cisco..."><p class="sd-hint">Powered by product registry &mdash; {{c.data.companyList.length}} companies. <a class="sd-link-blue" ng-click="c.setView('registry')">Edit &rarr;</a></p></div>
-
-      <div class="sd-card" ng-init="ls = c.getLiveStats()">
-        <h3 class="sd-card-heading">Opportunity brief</h3>
-        <p class="sd-brief-text" ng-if="!c.ownerFilter">We found <strong>{{ls.catCount}} service opportunities</strong> with <strong>{{ls.topics}} topics</strong>. Today, <strong class="text-green">{{ls.covered}} are covered</strong> &mdash; that's <strong ng-class="{'text-green': ls.pct >= 50, 'text-red': ls.pct < 50}">{{ls.pct}}% coverage</strong>.<span ng-if="ls.gaps > 0"> To address the remaining <strong>{{ls.gaps}}</strong> ({{ls.kbGaps}} KB articles, {{ls.catGaps}} catalog items), consider creating the missing content.</span></p>
-        <p class="sd-brief-text" ng-if="c.ownerFilter" ng-init="fStats = c.getFilteredStats()"><strong>{{c.ownerFilter}}</strong> touches <strong>{{fStats.topics}} topics</strong> across <strong>{{fStats.catCount}} categories</strong>. Of those, <strong ng-class="{'text-red': fStats.gaps > 0, 'text-green': fStats.gaps === 0}">{{fStats.gaps}} have gaps</strong>.</p>
-      </div>
-
-      <div class="sd-facet-toggle"><button class="sd-facet-btn" ng-class="{'active': c.facet === 'gaps'}" ng-click="c.setFacet('gaps')">Gaps only</button><button class="sd-facet-btn" ng-class="{'active': c.facet === 'all'}" ng-click="c.setFacet('all')">All</button></div>
+      <div class="sd-card sd-search-card"><input type="text" class="sd-input" ng-model="c.search" placeholder="Search for a company or product..."></div>
 
       <div class="sd-table">
         <div class="sd-table-header">
-          <span class="sd-col-topics">Topics</span>
-          <span class="sd-col-name">Service opportunity</span>
-          <span class="sd-col-records">Records</span>
-          <span class="sd-col-trend">Trend</span>
-          <span class="sd-col-gaps">Gaps</span>
-          <span class="sd-col-coverage">Coverage</span>
+          <span class="sd-col-name">Company / Product / Topic</span>
+          <span class="sd-col-sm">Incidents</span>
+          <span class="sd-col-xs">KB</span>
+          <span class="sd-col-xs">Catalog</span>
+          <span class="sd-col-xs">Rule</span>
+          <span class="sd-col-md">Status</span>
         </div>
-        <div class="sd-table-body">
-          <div class="sd-empty" ng-if="c.getFilteredCategories().length === 0"><span ng-if="c.ownerFilter">No match for "{{c.ownerFilter}}"</span><span ng-if="!c.ownerFilter">No results yet. <a class="sd-link-blue" ng-click="c.setView('configure')">Run a classification first &rarr;</a></span></div>
-
-          <div ng-repeat="cat in c.getFilteredCategories() track by cat.sys_id">
-            <div class="sd-cat-row" ng-click="c.toggleCategory(cat.name)">
-              <span class="sd-col-topics"><strong class="sd-topic-count">{{cat.topicCount}}</strong></span>
-              <span class="sd-col-name"><span class="sd-arrow" ng-class="{'open': c.expanded[cat.name]}">&#9654;</span><span class="sd-cat-name">{{cat.name}}</span></span>
-              <span class="sd-col-records sd-val">{{cat.records | number}}</span>
-              <span class="sd-col-trend"><span ng-if="cat.trend > 0" class="sd-trend-up">&#9650; {{cat.trend}}%</span><span ng-if="cat.trend < 0" class="sd-trend-down">&#9660; {{cat.trend * -1}}%</span><span ng-if="cat.trend === 0" class="sd-trend-flat">&mdash;</span></span>
-              <span class="sd-col-gaps"><span class="sd-gap-line" ng-if="c.getCatKbGaps(cat) > 0">KB articles: {{c.getCatKbGaps(cat)}}</span><span class="sd-gap-line" ng-if="c.getCatCatGaps(cat) > 0">Catalog items: {{c.getCatCatGaps(cat)}}</span><span ng-if="c.getCatKbGaps(cat) === 0 &amp;&amp; c.getCatCatGaps(cat) === 0" class="sd-gap-dash">&mdash;</span></span>
-              <span class="sd-col-coverage"><div class="sd-progress-bar"><div class="sd-progress-fill" ng-style="{'width': c.getCoveragePct(cat) + '%', 'background-color': c.getBarColor(c.getCoveragePct(cat))}"></div></div><span class="sd-coverage-pct">{{c.getCoveragePct(cat)}}%</span></span>
-            </div>
-
-            <div class="sd-expand-area" ng-if="c.expanded[cat.name]">
-              <div class="sd-no-gaps" ng-if="c.getFilteredTopics(cat.topics).length === 0">No gaps in this category.</div>
-              <div ng-repeat="topic in c.getFilteredTopics(cat.topics) track by topic.sys_id">
-                <div class="sd-topic-row">
-                  <span class="sd-col-topics"></span>
-                  <span class="sd-col-name sd-topic-name-col"><span class="sd-topic-name">{{topic.name}}</span><span class="sd-topic-meta">{{topic.solution}} &middot; {{topic.products.length > 0 ? topic.products.length : 'No'}} product{{topic.products.length !== 1 ? 's' : ''}} &middot; {{topic.volume}} records</span></span>
-                  <span class="sd-col-records sd-val"><a class="sd-link-blue" ng-click="c.openDemandModal(topic); $event.stopPropagation()">{{topic.volume}}</a></span>
-                  <span class="sd-col-trend"><span ng-if="topic.trend > 0" class="sd-trend-up">&#9650; {{topic.trend}}%</span><span ng-if="topic.trend < 0" class="sd-trend-down">&#9660; {{topic.trend * -1}}%</span><span ng-if="!topic.trend || topic.trend === 0" class="sd-trend-flat">&mdash;</span></span>
-                  <span class="sd-col-gaps"><span class="sd-gap-line" ng-if="topic.kbGap">KB article: 1</span><span class="sd-gap-line" ng-if="topic.catGap">Catalog item: 1</span><span ng-if="!topic.kbGap &amp;&amp; !topic.catGap" class="sd-gap-dash">&mdash;</span></span>
-                  <span class="sd-col-coverage"><a class="sd-link-blue" ng-click="c.openSupplyModal(topic); $event.stopPropagation()">View coverage &rarr;</a></span>
-                </div>
-                <div class="sd-product-row" ng-repeat="prod in topic.products track by $index">
-                  <span class="sd-col-topics"></span>
-                  <span class="sd-col-name"><span class="sd-product-pill">{{prod.company ? prod.company + ' &ndash; ' : ''}}{{prod.product}}</span></span>
-                  <span class="sd-col-records sd-val"><a class="sd-link-blue" ng-click="c.openProductDemand(topic, prod); $event.stopPropagation()">{{prod.count}}</a></span>
-                  <span class="sd-col-trend"></span>
-                  <span class="sd-col-gaps"><span class="sd-gap-line" ng-if="prod.kbGap">KB article: 1</span><span class="sd-gap-line" ng-if="prod.catGap">Catalog item: 1</span><span ng-if="!prod.kbGap &amp;&amp; !prod.catGap" class="sd-gap-dash">&mdash;</span></span>
-                  <span class="sd-col-coverage"><a class="sd-link-blue" ng-click="c.openProductSupply(topic, prod); $event.stopPropagation()">View coverage &rarr;</a></span>
+        <div ng-repeat="company in c.data.gapData.companies" ng-if="c.matchesSearch(company)">
+          <div class="sd-row-l1" ng-click="c.toggle(company.name)">
+            <span class="sd-col-name"><span class="sd-arrow" ng-class="{'open': c.isExpanded(company.name)}">&#9654;</span><strong>{{company.name}}</strong><span class="sd-gap-badge" ng-if="company.gapCount > 0">{{company.gapCount}} gap{{company.gapCount !== 1 ? 's' : ''}}</span></span>
+            <span class="sd-col-sm sd-val">{{company.totalIncidents}}</span>
+            <span class="sd-col-xs sd-val">{{company.totalKB}}</span>
+            <span class="sd-col-xs sd-val">{{company.totalCatalog}}</span>
+            <span class="sd-col-xs"></span>
+            <span class="sd-col-md"></span>
+          </div>
+          <div ng-if="c.isExpanded(company.name)">
+            <div ng-repeat="product in company.products">
+              <div class="sd-row-l2" ng-click="c.toggle(company.name + product.name)">
+                <span class="sd-col-name"><span class="sd-arrow" ng-class="{'open': c.isExpanded(company.name + product.name)}">&#9654;</span><span class="sd-l2-name">{{product.name}}</span><span class="sd-gap-badge" ng-if="product.gapCount > 0">{{product.gapCount}}</span></span>
+                <span class="sd-col-sm sd-val">{{product.totalIncidents}}</span>
+                <span class="sd-col-xs sd-val">{{product.totalKB}}</span>
+                <span class="sd-col-xs sd-val">{{product.totalCatalog}}</span>
+                <span class="sd-col-xs"></span>
+                <span class="sd-col-md"></span>
+              </div>
+              <div ng-if="c.isExpanded(company.name + product.name)">
+                <div class="sd-row-l3" ng-repeat="topic in product.topics" ng-if="topic.incidents > 0">
+                  <span class="sd-col-name"><span class="sd-l3-name">{{topic.name}}</span><span class="sd-l3-parent">{{topic.parent}}</span></span>
+                  <span class="sd-col-sm sd-val">{{topic.incidents}}</span>
+                  <span class="sd-col-xs sd-val" ng-class="{'text-green': topic.kb > 0, 'text-red': topic.kb === 0}">{{topic.kb}}</span>
+                  <span class="sd-col-xs sd-val" ng-class="{'text-green': topic.catalog > 0, 'text-red': topic.catalog === 0}">{{topic.catalog}}</span>
+                  <span class="sd-col-xs sd-rule">{{topic.rule}}</span>
+                  <span class="sd-col-md">
+                    <span class="sd-status-covered" ng-if="topic.covered">Covered &#10003;</span>
+                    <a class="sd-status-gap" ng-if="!topic.covered" ng-click="c.openCoverageModal(topic); $event.stopPropagation()">View gap &rarr;</a>
+                  </span>
                 </div>
               </div>
             </div>
@@ -172,59 +201,83 @@
     </div>
   </div>
 
-  <!-- ═══════════ MODAL ══════════════════════════════════ -->
-  <div class="sd-modal-overlay" ng-if="c.modal" ng-click="c.closeModal()">
-    <div class="sd-modal" ng-click="$event.stopPropagation()">
-      <!-- Demand Modal -->
-      <div ng-if="c.modal.type === 'demand'">
-        <div class="sd-modal-header">
-          <span class="sd-modal-label">Demand signal</span>
-          <h2 class="sd-modal-title">{{c.modal.topic.name}}</h2>
-          <div ng-if="c.modal.product"><span class="sd-pill">{{c.modal.product.company ? c.modal.product.company + ' &ndash; ' : ''}}{{c.modal.product.product}}</span></div>
-          <button class="sd-modal-close" ng-click="c.closeModal()">&times;</button>
-        </div>
-        <div class="sd-modal-context"><strong>{{c.modal.incidents.length}} incidents</strong> matched.</div>
-        <div class="sd-modal-body">
-          <div class="sd-modal-empty" ng-if="c.modal.incidents.length === 0">No classified incident data for this topic yet. Run a new analysis to populate.</div>
-          <div class="sd-modal-record" ng-repeat="inc in c.modal.incidents track by $index"><span class="sd-record-id">{{inc.id}}</span><p class="sd-record-title">{{inc.title}}</p><p class="sd-record-notes" ng-if="inc.close_notes">{{inc.close_notes}}</p></div>
+  <!-- ═══════════ EXISTING REPORTS ══════════════════════ -->
+  <div ng-if="c.view === 'reports'" class="sd-page">
+    <div class="sd-teal-bar"></div>
+    <div class="sd-page-body">
+      <button class="sd-back-btn" ng-click="c.setView('home')">&larr; Home</button>
+      <h1 class="sd-page-title">Existing reports</h1>
+      <p class="sd-page-desc">Select a report to view results.</p>
+      <div class="sd-card sd-report-card" ng-repeat="report in c.data.reports" ng-click="c.openReport(report)">
+        <div class="sd-report-main">
+          <div><div class="sd-report-name">{{report.name}}</div><div class="sd-report-meta">{{report.date}} &middot; {{report.totalAnalyzed}} records<span ng-if="report.unmatched > 0"> &middot; {{report.unmatched}} unmatched</span></div></div>
+          <div class="sd-report-right"><span class="sd-report-status" ng-class="{'complete': report.status === 'Complete'}">{{report.status}}</span><span class="sd-report-arrow">&rarr;</span></div>
         </div>
       </div>
+      <div class="sd-empty" ng-if="c.data.reports.length === 0">No reports yet. <a class="sd-link-blue" ng-click="c.goNewReport()">Create your first report &rarr;</a></div>
+    </div>
+  </div>
 
-      <!-- Coverage Modal (v5.1: split into Covered + Gaps) -->
-      <div ng-if="c.modal.type === 'supply'">
-        <div class="sd-modal-header">
-          <span class="sd-modal-label">Coverage details</span>
-          <h2 class="sd-modal-title">{{c.modal.topic.name}}</h2>
-          <div ng-if="c.modal.product"><span class="sd-pill">{{c.modal.product.company ? c.modal.product.company + ' &ndash; ' : ''}}{{c.modal.product.product}}</span></div>
-          <button class="sd-modal-close" ng-click="c.closeModal()">&times;</button>
-        </div>
-
-        <!-- Covered section -->
-        <div class="sd-modal-gaps">
-          <div class="sd-coverage-section">
-            <div class="sd-coverage-section-title">Covered</div>
-            <div ng-if="!c.modal.topic.kbGap &amp;&amp; !c.modal.topic.catGap" class="sd-coverage-item" style="color: #00875A;">Both KB article and catalog item exist. No action needed.</div>
-            <div ng-if="c.modal.topic.kbGap &amp;&amp; c.modal.topic.catGap" class="sd-coverage-item">No existing KB articles or catalog items for this topic.</div>
-            <div ng-if="!c.modal.topic.kbGap &amp;&amp; c.modal.topic.catGap" class="sd-coverage-item" style="color: #00875A;">KB article exists.</div>
-            <div ng-if="c.modal.topic.kbGap &amp;&amp; !c.modal.topic.catGap" class="sd-coverage-item" style="color: #00875A;">Catalog item exists.</div>
-          </div>
-
-          <!-- Gaps section -->
-          <div class="sd-coverage-section" ng-if="c.modal.isGap">
-            <div class="sd-coverage-section-title">Gaps</div>
-            <div class="sd-gap-card sd-gap-card-kb" ng-if="c.modal.topic.kbGap">
-              <strong>KB article</strong> &mdash; No KB article exists<span ng-if="c.modal.product"> for {{c.modal.product.product}}</span>. Employees cannot self-serve. <strong>Recommendation:</strong> Create a knowledge article covering resolution steps.
-            </div>
-            <div class="sd-gap-card sd-gap-card-cat" ng-if="c.modal.topic.catGap">
-              <strong>Catalog item</strong> &mdash; No catalog item exists<span ng-if="c.modal.product"> for {{c.modal.product.product}}</span>. Employees cannot submit a structured request. <strong>Recommendation:</strong> Create a catalog item with fulfillment workflow.
-            </div>
+  <!-- ═══════════ GLOBAL REGISTRY ══════════════════════ -->
+  <div ng-if="c.view === 'registry'" class="sd-page">
+    <div class="sd-teal-bar"></div>
+    <div class="sd-page-body sd-medium">
+      <button class="sd-back-btn" ng-click="c.setView('home')">&larr; Home</button>
+      <h1 class="sd-page-title">Product registry</h1>
+      <p class="sd-page-desc">Global registry of companies and products.</p>
+      <div class="sd-card sd-search-card"><input type="text" class="sd-input" ng-model="c.search" placeholder="Search company or product..."></div>
+      <div class="sd-reg-card" ng-repeat="co in c.data.registry" ng-if="c.matchesRegistrySearch(co)" ng-class="{'confirmed': co.verified}">
+        <div class="sd-reg-card-main">
+          <div class="sd-reg-left"><div class="sd-reg-status" ng-class="{'done': co.verified}">{{co.verified ? '&#10003;' : '?'}}</div><div><div class="sd-reg-company">{{co.name}}</div><div class="sd-reg-products"><span class="sd-pill" ng-repeat="p in co.products">{{p.name}}</span></div></div></div>
+          <div class="sd-reg-right">
+            <button class="sd-btn-sm sd-btn-confirm" ng-if="!co.verified" ng-repeat="p in co.products" ng-click="c.confirmProduct(p.sys_id)">Confirm</button>
+            <button class="sd-btn-sm sd-btn-edit">Edit</button>
+            <button class="sd-btn-sm sd-btn-remove" ng-repeat="p in co.products" ng-click="c.removeProduct(p.sys_id)">Remove</button>
           </div>
         </div>
+      </div>
+      <div class="sd-add-btn" ng-if="!c.showAddCompany" ng-click="c.toggleAddCompany()">+ Add company</div>
+      <div class="sd-card" ng-if="c.showAddCompany">
+        <strong>Add a new company and product</strong>
+        <div class="sd-filter-row-2col" style="margin-top: 12px;"><div class="sd-field"><label>Company</label><input type="text" class="sd-input" ng-model="c.newCompanyName" placeholder="e.g., Zoom"></div><div class="sd-field"><label>Product</label><input type="text" class="sd-input" ng-model="c.newProductName" placeholder="e.g., Zoom Meetings"></div></div>
+        <div class="sd-edit-actions"><button class="sd-btn-primary sd-btn-sm" ng-click="c.addProduct()">Add</button><button class="sd-btn-sm" ng-click="c.toggleAddCompany()">Cancel</button></div>
+      </div>
+    </div>
+  </div>
 
-        <!-- Resolution patterns -->
-        <div class="sd-modal-body" ng-if="c.modal.incidents.length > 0">
-          <div class="sd-modal-patterns-label">How agents resolve this today</div>
-          <div class="sd-modal-record" ng-repeat="inc in c.modal.incidents track by $index"><span class="sd-record-id">{{inc.id}}</span><p class="sd-record-title">{{inc.title}}</p><p class="sd-record-notes" ng-if="inc.close_notes">{{inc.close_notes}}</p></div>
+  <!-- ═══════════ COVERAGE MODAL ═══════════════════════ -->
+  <div class="sd-modal-overlay" ng-if="c.modal" ng-click="c.closeModal()">
+    <div class="sd-modal" ng-click="$event.stopPropagation()">
+      <div class="sd-modal-header">
+        <span class="sd-modal-label">Coverage details</span>
+        <h2 class="sd-modal-title">{{c.modal.topic.name}}</h2>
+        <div class="sd-modal-meta">{{c.modal.topic.parent}} &middot; {{c.modal.topic.incidents}} incidents</div>
+        <button class="sd-modal-close" ng-click="c.closeModal()">&times;</button>
+      </div>
+      <div class="sd-modal-body">
+        <div class="sd-coverage-section">
+          <div class="sd-coverage-section-title">Covered</div>
+          <div class="sd-gap-card sd-gap-card-green" ng-if="c.modal.topic.kb > 0"><strong class="text-green">{{c.modal.topic.kb}} KB article{{c.modal.topic.kb !== 1 ? 's' : ''}}</strong> exist.</div>
+          <div class="sd-gap-card sd-gap-card-green" ng-if="c.modal.topic.catalog > 0"><strong class="text-green">{{c.modal.topic.catalog}} catalog item{{c.modal.topic.catalog !== 1 ? 's' : ''}}</strong> exist.</div>
+          <div class="sd-coverage-none" ng-if="c.modal.topic.kb === 0 &amp;&amp; c.modal.topic.catalog === 0">No content exists.</div>
+        </div>
+        <div class="sd-coverage-section">
+          <div class="sd-coverage-section-title">Gaps</div>
+          <div class="sd-gap-card sd-gap-card-kb" ng-if="c.modal.topic.kb === 0 &amp;&amp; (c.modal.rule === 'kb' || c.modal.rule === 'both')"><strong class="text-red">KB article needed.</strong> {{c.modal.topic.incidents}} incidents with no KB coverage.</div>
+          <div class="sd-gap-card sd-gap-card-cat" ng-if="c.modal.topic.catalog === 0 &amp;&amp; (c.modal.rule === 'catalog' || c.modal.rule === 'both')"><strong class="text-orange">Catalog item needed.</strong> {{c.modal.topic.incidents}} incidents with no catalog coverage.</div>
+          <div class="sd-gap-card sd-gap-card-kb" ng-if="c.modal.rule === 'either' &amp;&amp; c.modal.topic.kb === 0 &amp;&amp; c.modal.topic.catalog === 0"><strong class="text-red">Content needed.</strong> {{c.modal.topic.incidents}} incidents with no coverage.</div>
+        </div>
+        <div class="sd-coverage-section">
+          <div class="sd-coverage-section-title">Coverage rule</div>
+          <div class="sd-rule-buttons">
+            <button class="sd-rule-btn" ng-class="{'active': c.modal.rule === 'kb'}" ng-click="c.modal.rule = 'kb'">kb</button>
+            <button class="sd-rule-btn" ng-class="{'active': c.modal.rule === 'catalog'}" ng-click="c.modal.rule = 'catalog'">catalog</button>
+            <button class="sd-rule-btn" ng-class="{'active': c.modal.rule === 'both'}" ng-click="c.modal.rule = 'both'">both</button>
+            <button class="sd-rule-btn" ng-class="{'active': c.modal.rule === 'either'}" ng-click="c.modal.rule = 'either'">either</button>
+            <button class="sd-rule-btn" ng-class="{'active': c.modal.rule === 'none'}" ng-click="c.modal.rule = 'none'">none</button>
+          </div>
+          <p class="sd-hint">Override the default coverage rule for this topic &times; product.</p>
+          <button class="sd-btn-primary sd-btn-sm" ng-click="c.saveCoverageRule()" style="margin-top: 12px;">Save rule</button>
         </div>
       </div>
     </div>
