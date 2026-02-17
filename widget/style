@@ -1,4 +1,4 @@
-/* SCSS - v6.2: 6-step flow, registry badges, unmatched styles */
+/* SCSS - v6.3: Confirm labels, hide button, registry-style unmatched */
 
 $navy: #2E3D49;
 $navy-lt: #485A67;
@@ -31,14 +31,19 @@ $white: #FFFFFF;
 .sd-brief-text { font-size: 0.95rem; line-height: 1.7; color: $navy-lt; margin: 0; strong { color: $txt-dk; } }
 .sd-hint { font-size: 0.8rem; color: $txt; margin: 8px 0 0; }
 .sd-link-blue { font-weight: 600; color: $blue; cursor: pointer; }
-.sd-pill { display: inline-flex; padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; background: $lt; color: $navy-lt; white-space: nowrap; margin: 2px 2px 2px 0; }
+.sd-pill { display: inline-flex; padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; background: $lt; color: $navy-lt; white-space: nowrap; }
 
 .sd-btn-primary { background: $navy; color: white; border: none; border-radius: 8px; padding: 12px 24px; font-size: 0.95rem; font-weight: 600; cursor: pointer; &:hover { opacity: 0.85; } }
 .sd-btn-sm { background: $lt; border: 1px solid $border; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: 600; color: $navy-lt; cursor: pointer; }
 .sd-btn-full { width: 100%; padding: 14px; }
 .sd-btn-confirm { background: $green-lt; color: $green; border: none; }
 .sd-btn-edit { &:hover { background: $border; } }
+.sd-btn-hide { background: none; border: 1px solid $border; color: $txt; font-size: 0.8rem; &:hover { color: $red; border-color: $red; } }
 .sd-btn-remove { background: none; border: none; color: $red; font-weight: 600; cursor: pointer; font-size: 0.8rem; padding: 5px 8px; }
+
+/* Confirmed labels */
+.sd-confirmed-label { font-size: 0.8rem; font-weight: 600; color: $green; }
+.sd-confirmed-label-sm { font-size: 0.75rem; font-weight: 700; color: $green; width: 20px; text-align: center; }
 
 .sd-input { width: 100%; padding: 10px 14px; border: 1px solid $border; border-radius: 6px; font-size: 0.9rem; background: $bg; outline: none; &:focus { border-color: $navy-lt; background: $white; } }
 .sd-select { appearance: auto; cursor: pointer; }
@@ -58,7 +63,6 @@ $white: #FFFFFF;
 /* Progress */
 .sd-progress-card { margin-top: 16px; }
 .sd-progress-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; color: $navy; }
-.sd-progress-pct { font-weight: 700; }
 .sd-progress-bar { height: 6px; background: $lt; border-radius: 3px; overflow: hidden; }
 .sd-progress-fill { height: 100%; border-radius: 3px; background: $teal; transition: width 0.3s; }
 
@@ -77,9 +81,9 @@ $white: #FFFFFF;
 .sd-home-card-title { font-size: 1.1rem; font-weight: 700; color: $txt-dk; margin-bottom: 8px; }
 .sd-home-card-desc { font-size: 0.85rem; color: $txt; }
 
-/* Steps - 6 steps */
+/* Steps - 6 steps with smaller text */
 .sd-steps { display: flex; gap: 0; margin-bottom: 24px; }
-.sd-step { flex: 1; padding: 8px 8px; text-align: center; font-size: 0.78rem; font-weight: 600; color: $txt; background: $lt; white-space: nowrap; &:first-child { border-radius: 8px 0 0 8px; } &:last-child { border-radius: 0 8px 8px 0; } &.active { background: $navy; color: white; } &.done { background: $green-lt; color: $green; } }
+.sd-step { flex: 1; padding: 8px 6px; text-align: center; font-size: 0.75rem; font-weight: 600; color: $txt; background: $lt; white-space: nowrap; &:first-child { border-radius: 8px 0 0 8px; } &:last-child { border-radius: 0 8px 8px 0; } &.active { background: $navy; color: white; } &.done { background: $green-lt; color: $green; } }
 
 /* Table */
 .sd-table { background: $white; border: 1px solid $border; border-radius: 8px; overflow: hidden; }
@@ -105,7 +109,7 @@ $white: #FFFFFF;
 .sd-status-covered { font-size: 0.85rem; font-weight: 600; color: $green; }
 .sd-status-gap { font-size: 0.85rem; font-weight: 600; color: $red; cursor: pointer; text-decoration: underline; }
 
-/* Registry - company header + product rows */
+/* Registry */
 .sd-reg-card { background: $white; border: 1px solid $border; border-radius: 8px; margin-bottom: 12px; overflow: hidden; &.confirmed { border-left: 4px solid $green; } }
 .sd-reg-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: $white; border-bottom: 1px solid $lt; }
 .sd-reg-left { display: flex; align-items: center; gap: 12px; }
@@ -122,10 +126,6 @@ $white: #FFFFFF;
 .sd-reg-product-mentions { font-size: 0.75rem; color: $txt; margin-left: auto; margin-right: 12px; white-space: nowrap; }
 .sd-reg-product-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .sd-add-btn { border: 2px dashed $border; border-radius: 8px; padding: 16px; text-align: center; font-size: 0.9rem; font-weight: 600; color: $txt; cursor: pointer; margin-bottom: 20px; }
-
-/* Unmatched */
-.sd-unmatched-row { padding: 4px 0; }
-.sd-unmatched-meta { font-size: 0.85rem; color: $txt; margin-top: 4px; }
 
 /* Reports */
 .sd-report-card { cursor: pointer; padding: 20px; &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); } }
