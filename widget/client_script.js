@@ -1,4 +1,4 @@
-// CLIENT SCRIPT - v6.2: 6-step flow, fixed confirm, unmatched view
+// CLIENT SCRIPT - v6.3: Confirm feedback, hide/unhide, registry-style unmatched
 function() {
   var c = this;
 
@@ -10,32 +10,18 @@ function() {
   c.running = false;
   c.progress = 0;
   c.runPhase = '';
-
   c.supplyFilters = { kbState: 'published' };
   c.demandFilters = { dateFrom: '', dateTo: '', assignmentGroup: '', limit: '50' };
 
   // ─── NAVIGATION ──────────────────────────────────────
   c.setView = function(view) { c.view = view; c.expanded = {}; c.modal = null; c.search = ''; };
-
   c.goNewReport = function() { c.setView('new-report'); };
-  c.goReports = function() {
-    c.server.get({ action: 'loadReports' }).then(function(r) { c.data.reports = r.data.reports; c.setView('reports'); });
-  };
-  c.goRegistry = function() {
-    c.server.get({ action: 'loadRegistry' }).then(function(r) { c.data.registry = r.data.registry; c.setView('registry'); });
-  };
-  c.goReviewRegistry = function() {
-    c.server.get({ action: 'loadRegistry' }).then(function(r) { c.data.registry = r.data.registry; c.setView('review-registry'); });
-  };
-  c.goSupplyResults = function() {
-    c.server.get({ action: 'loadSupplyResults' }).then(function(r) { c.data.supplyData = r.data.supplyData; c.setView('supply-results'); });
-  };
-  c.goReviewUnmatched = function() {
-    c.server.get({ action: 'loadUnmatched' }).then(function(r) { c.data.unmatched = r.data.unmatched; c.setView('review-unmatched'); });
-  };
-  c.goGaps = function() {
-    c.server.get({ action: 'loadGaps' }).then(function(r) { c.data.gapData = r.data.gapData; c.setView('gaps'); });
-  };
+  c.goReports = function() { c.server.get({ action: 'loadReports' }).then(function(r) { c.data.reports = r.data.reports; c.setView('reports'); }); };
+  c.goRegistry = function() { c.server.get({ action: 'loadRegistry' }).then(function(r) { c.data.registry = r.data.registry; c.setView('registry'); }); };
+  c.goReviewRegistry = function() { c.server.get({ action: 'loadRegistry' }).then(function(r) { c.data.registry = r.data.registry; c.setView('review-registry'); }); };
+  c.goSupplyResults = function() { c.server.get({ action: 'loadSupplyResults' }).then(function(r) { c.data.supplyData = r.data.supplyData; c.setView('supply-results'); }); };
+  c.goReviewUnmatched = function() { c.server.get({ action: 'loadUnmatched' }).then(function(r) { c.data.unmatched = r.data.unmatched; c.setView('review-unmatched'); }); };
+  c.goGaps = function() { c.server.get({ action: 'loadGaps' }).then(function(r) { c.data.gapData = r.data.gapData; c.setView('gaps'); }); };
 
   // ─── SUPPLY ANALYSIS (Step 1) ────────────────────────
   c.runSupplyAnalysis = function() {
@@ -53,7 +39,6 @@ function() {
     });
   };
 
-  // ─── REPORT DETAIL ───────────────────────────────────
   c.openReport = function(report) { c.data.currentReport = report; c.goGaps(); };
 
   // ─── EXPAND/COLLAPSE ────────────────────────────────
@@ -65,20 +50,10 @@ function() {
     if (!c.search || c.search.length < 2) return true;
     var s = c.search.toLowerCase();
     if (company.name.toLowerCase().indexOf(s) > -1) return true;
-    for (var i = 0; i < company.products.length; i++) {
-      if (company.products[i].name.toLowerCase().indexOf(s) > -1) return true;
-    }
+    for (var i = 0; i < company.products.length; i++) { if (company.products[i].name.toLowerCase().indexOf(s) > -1) return true; }
     return false;
   };
-  c.matchesRegistrySearch = function(company) {
-    if (!c.search || c.search.length < 2) return true;
-    var s = c.search.toLowerCase();
-    if (company.name.toLowerCase().indexOf(s) > -1) return true;
-    for (var i = 0; i < company.products.length; i++) {
-      if (company.products[i].name.toLowerCase().indexOf(s) > -1) return true;
-    }
-    return false;
-  };
+  c.matchesRegistrySearch = c.matchesSearch;
 
   // ─── MODAL ───────────────────────────────────────────
   c.openCoverageModal = function(topic) { c.modal = { topic: topic, rule: topic.rule || 'either' }; };
@@ -98,22 +73,24 @@ function() {
 
   // ─── REGISTRY ACTIONS ───────────────────────────────
   c.confirmProduct = function(productSysId) {
-    c.server.get({ action: 'confirmProduct', productSysId: productSysId }).then(function() {
-      c.reloadRegistry();
+    c.server.get({ action: 'confirmProduct', productSysId: productSysId }).then(function(r) {
+      c.data.registry = r.data.registry;
     });
   };
   c.confirmAllForCompany = function(companyName) {
-    c.server.get({ action: 'confirmAllForCompany', companyName: companyName }).then(function() {
-      c.reloadRegistry();
+    c.server.get({ action: 'confirmAllForCompany', companyName: companyName }).then(function(r) {
+      c.data.registry = r.data.registry;
     });
   };
-  c.removeProduct = function(productSysId) {
-    c.server.get({ action: 'removeProduct', productSysId: productSysId }).then(function() {
-      c.reloadRegistry();
+  c.hideProduct = function(productSysId) {
+    c.server.get({ action: 'hideProduct', productSysId: productSysId }).then(function(r) {
+      c.data.registry = r.data.registry;
     });
   };
-  c.reloadRegistry = function() {
-    c.server.get({ action: 'loadRegistry' }).then(function(r) { c.data.registry = r.data.registry; });
+  c.unhideProduct = function(productSysId) {
+    c.server.get({ action: 'unhideProduct', productSysId: productSysId }).then(function(r) {
+      c.data.registry = r.data.registry;
+    });
   };
 
   c.showAddCompany = false;
@@ -122,8 +99,8 @@ function() {
   c.toggleAddCompany = function() { c.showAddCompany = !c.showAddCompany; c.newCompanyName = ''; c.newProductName = ''; };
   c.addProduct = function() {
     if (!c.newCompanyName || !c.newProductName) return;
-    c.server.get({ action: 'addProduct', companyName: c.newCompanyName, productName: c.newProductName }).then(function() {
-      c.showAddCompany = false; c.reloadRegistry();
+    c.server.get({ action: 'addProduct', companyName: c.newCompanyName, productName: c.newProductName }).then(function(r) {
+      c.showAddCompany = false; c.data.registry = r.data.registry;
     });
   };
 
