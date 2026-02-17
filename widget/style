@@ -1,4 +1,4 @@
-/* SCSS - v6.1: Fixes registry layout, adds progress bar */
+/* SCSS - v6.2: 6-step flow, registry badges, unmatched styles */
 
 $navy: #2E3D49;
 $navy-lt: #485A67;
@@ -19,7 +19,6 @@ $white: #FFFFFF;
 
 .sd-wrapper { color: $txt-dk; max-width: 1200px; margin: 0 auto; font-family: 'Source Sans Pro', -apple-system, sans-serif; font-size: 15px; line-height: 1.5; }
 
-/* Utilities */
 .text-green { color: $green !important; }
 .text-red { color: $red !important; }
 .text-orange { color: $orange !important; }
@@ -78,9 +77,9 @@ $white: #FFFFFF;
 .sd-home-card-title { font-size: 1.1rem; font-weight: 700; color: $txt-dk; margin-bottom: 8px; }
 .sd-home-card-desc { font-size: 0.85rem; color: $txt; }
 
-/* Steps */
+/* Steps - 6 steps */
 .sd-steps { display: flex; gap: 0; margin-bottom: 24px; }
-.sd-step { flex: 1; padding: 10px 16px; text-align: center; font-size: 0.85rem; font-weight: 600; color: $txt; background: $lt; &:first-child { border-radius: 8px 0 0 8px; } &:last-child { border-radius: 0 8px 8px 0; } &.active { background: $navy; color: white; } &.done { background: $green-lt; color: $green; } }
+.sd-step { flex: 1; padding: 8px 8px; text-align: center; font-size: 0.78rem; font-weight: 600; color: $txt; background: $lt; white-space: nowrap; &:first-child { border-radius: 8px 0 0 8px; } &:last-child { border-radius: 0 8px 8px 0; } &.active { background: $navy; color: white; } &.done { background: $green-lt; color: $green; } }
 
 /* Table */
 .sd-table { background: $white; border: 1px solid $border; border-radius: 8px; overflow: hidden; }
@@ -106,19 +105,27 @@ $white: #FFFFFF;
 .sd-status-covered { font-size: 0.85rem; font-weight: 600; color: $green; }
 .sd-status-gap { font-size: 0.85rem; font-weight: 600; color: $red; cursor: pointer; text-decoration: underline; }
 
-/* Registry - FIXED layout */
-.sd-reg-card { background: $white; border: 1px solid $border; border-radius: 8px; margin-bottom: 10px; padding: 0; overflow: hidden; &.confirmed { border-left: 3px solid $green; } }
-.sd-reg-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid $lt; }
-.sd-reg-left { display: flex; align-items: center; gap: 14px; }
-.sd-reg-status { width: 30px; height: 30px; border-radius: 50%; background: $lt; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: $txt; font-weight: 700; flex-shrink: 0; &.done { background: $green-lt; color: $green; } }
-.sd-reg-company { font-size: 0.95rem; font-weight: 600; color: $txt-dk; }
+/* Registry - company header + product rows */
+.sd-reg-card { background: $white; border: 1px solid $border; border-radius: 8px; margin-bottom: 12px; overflow: hidden; &.confirmed { border-left: 4px solid $green; } }
+.sd-reg-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: $white; border-bottom: 1px solid $lt; }
+.sd-reg-left { display: flex; align-items: center; gap: 12px; }
+.sd-reg-status { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; background: $orange-lt; color: $orange; &.done { background: $green-lt; color: $green; } }
+.sd-reg-company { font-size: 1rem; font-weight: 700; color: $txt-dk; }
+.sd-reg-review-badge { font-size: 0.7rem; font-weight: 600; padding: 2px 10px; border-radius: 99px; background: $orange-lt; color: $orange; margin-left: 8px; }
+.sd-reg-confirmed-badge { font-size: 0.7rem; font-weight: 600; padding: 2px 10px; border-radius: 99px; background: $green-lt; color: $green; margin-left: 8px; }
 .sd-reg-actions-co { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .sd-reg-product-list { padding: 0; }
 .sd-reg-product-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px 10px 64px; border-bottom: 1px solid $lt; &:last-child { border-bottom: none; } }
-.sd-reg-product-mentions { font-size: 0.75rem; color: $txt; margin-left: auto; margin-right: 12px; }
+.sd-reg-product-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.sd-reg-product-status { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; flex-shrink: 0; background: $lt; color: $txt; border: 1px solid $border; &.verified { background: $green-lt; color: $green; border-color: $green; } }
+.sd-reg-product-name { font-size: 0.9rem; font-weight: 600; color: $txt-dk; }
+.sd-reg-product-mentions { font-size: 0.75rem; color: $txt; margin-left: auto; margin-right: 12px; white-space: nowrap; }
 .sd-reg-product-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.sd-reg-products { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 .sd-add-btn { border: 2px dashed $border; border-radius: 8px; padding: 16px; text-align: center; font-size: 0.9rem; font-weight: 600; color: $txt; cursor: pointer; margin-bottom: 20px; }
+
+/* Unmatched */
+.sd-unmatched-row { padding: 4px 0; }
+.sd-unmatched-meta { font-size: 0.85rem; color: $txt; margin-top: 4px; }
 
 /* Reports */
 .sd-report-card { cursor: pointer; padding: 20px; &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); } }
