@@ -1,24 +1,33 @@
-// SERVER SCRIPT - v6: Company → Product → Topic hierarchy
-// Supports: home, supply results, registry, demand config, gaps view, reports list
-
+// SERVER SCRIPT - v6.2: Cross-run gap analysis, fixed confirm, 6-step flow
 (function() {
   var handled = false;
 
   if (input && input.action) {
 
-    // ═══════ LOAD SUPPLY RESULTS ═══════════════════════
+    // ═══════ LOAD SUPPLY RESULTS (KB + Catalog only) ════
     if (input.action === 'loadSupplyResults') {
       handled = true;
-      var runId = input.runSysId || '';
-      data.supplyData = buildCompanyHierarchy(runId, ['kb_knowledge', 'sc_cat_item']);
+      data.supplyData = buildCompanyHierarchy('', ['kb_knowledge', 'sc_cat_item']);
     }
 
-    // ═══════ LOAD GAP ANALYSIS ════════════════════════
+    // ═══════ LOAD GAP ANALYSIS (cross-run: all supply + all demand) ═
     if (input.action === 'loadGaps') {
       handled = true;
-      var runId = input.runSysId || '';
-      data.gapData = buildCompanyHierarchy(runId, ['kb_knowledge', 'sc_cat_item', 'incident']);
+      // No run filter — combine ALL supply + demand classifications
+      data.gapData = buildCompanyHierarchy('', ['kb_knowledge', 'sc_cat_item', 'incident']);
       data.gapData.companies = computeGaps(data.gapData.companies);
+      // Remove companies with zero incidents and zero supply (noise)
+      var filtered = [];
+      for (var fc = 0; fc < data.gapData.companies.length; fc++) {
+        var co = data.gapData.companies[fc];
+        if (co.name === 'Unassigned') {
+          // Only show Unassigned if it has incidents
+          if (co.totalIncidents > 0) filtered.push(co);
+        } else {
+          filtered.push(co);
+        }
+      }
+      data.gapData.companies = filtered;
     }
 
     // ═══════ LOAD REPORTS LIST ════════════════════════
@@ -40,7 +49,6 @@
       var productSysId = input.productSysId;
       var rule = input.rule;
 
-      // Check if override exists
       var existing = new GlideRecord('u_x_snc_sd_coverage_rule');
       existing.addQuery('u_service_opportunity', topicSysId);
       existing.addQuery('u_product', productSysId);
@@ -71,6 +79,21 @@
       if (prodGr.get(input.productSysId)) {
         prodGr.setValue('u_verified', true);
         prodGr.update();
+        data.confirmed = true;
+      }
+    }
+
+    // ═══════ CONFIRM ALL FOR COMPANY ══════════════════
+    if (input.action === 'confirmAllForCompany') {
+      handled = true;
+      var companyName = input.companyName || '';
+      var caGr = new GlideRecord('u_x_snc_sd_company_product');
+      caGr.addQuery('u_company_name', companyName);
+      caGr.addQuery('u_verified', false);
+      caGr.query();
+      while (caGr.next()) {
+        caGr.setValue('u_verified', true);
+        caGr.update();
       }
       data.confirmed = true;
     }
@@ -78,9 +101,9 @@
     // ═══════ REMOVE PRODUCT ═══════════════════════════
     if (input.action === 'removeProduct') {
       handled = true;
-      var prodGr = new GlideRecord('u_x_snc_sd_company_product');
-      if (prodGr.get(input.productSysId)) {
-        prodGr.deleteRecord();
+      var rpGr = new GlideRecord('u_x_snc_sd_company_product');
+      if (rpGr.get(input.productSysId)) {
+        rpGr.deleteRecord();
       }
       data.removed = true;
     }
@@ -98,19 +121,19 @@
       newProd.insert();
       data.added = true;
     }
+
+    // ═══════ LOAD UNMATCHED (from demand) ═════════════
+    if (input.action === 'loadUnmatched') {
+      handled = true;
+      data.unmatched = getUnmatched();
+    }
   }
 
   // ═══════ INITIAL PAGE LOAD ══════════════════════════
   if (!handled) {
     data.reports = getReports();
     data.registry = getRegistry();
-
-    // Summary stats from latest complete run
-    var latestRun = null;
-    if (data.reports.length > 0) {
-      latestRun = data.reports[0];
-    }
-    data.latestRun = latestRun;
+    data.latestRun = data.reports.length > 0 ? data.reports[0] : null;
   }
 
   // ═══════════════════════════════════════════════════
@@ -152,29 +175,44 @@
       });
     }
 
-    // Group by company
     var companies = {};
     for (var i = 0; i < registry.length; i++) {
       var co = registry[i].company || 'Other';
       if (!companies[co]) {
-        companies[co] = { name: co, products: [], verified: false };
+        companies[co] = { name: co, products: [], verified: true, totalMentions: 0 };
       }
       companies[co].products.push(registry[i]);
-      if (registry[i].verified) companies[co].verified = true;
+      companies[co].totalMentions += registry[i].mentions;
+      // Company is verified only if ALL products are verified
+      if (!registry[i].verified) companies[co].verified = false;
     }
 
     var result = [];
     for (var key in companies) {
       result.push(companies[key]);
     }
-    result.sort(function(a, b) {
-      return b.products.length - a.products.length;
-    });
+    result.sort(function(a, b) { return b.totalMentions - a.totalMentions; });
     return result;
   }
 
+  function getUnmatched() {
+    var unmatched = [];
+    var clsGr = new GlideRecord('u_x_snc_sd_classification');
+    clsGr.addQuery('u_in_other_bucket', true);
+    clsGr.addQuery('u_source_type', 'incident');
+    clsGr.query();
+    while (clsGr.next()) {
+      unmatched.push({
+        number: clsGr.getValue('u_source_number') || '',
+        description: clsGr.getValue('u_source_description') || '',
+        company: clsGr.getValue('u_extracted_company') || '',
+        product: clsGr.getValue('u_extracted_product') || ''
+      });
+    }
+    return unmatched;
+  }
+
   function buildCompanyHierarchy(runId, sourceTypes) {
-    // Build product lookup
     var productLookup = {};
     var plGr = new GlideRecord('u_x_snc_sd_company_product');
     plGr.query();
@@ -186,7 +224,6 @@
       };
     }
 
-    // Build topic lookup
     var topicLookup = {};
     var topicGr = new GlideRecord('u_x_snc_sd_opportunity');
     topicGr.addQuery('u_active', true);
@@ -201,7 +238,6 @@
       };
     }
 
-    // Build coverage rule overrides lookup
     var ruleOverrides = {};
     var ruleGr = new GlideRecord('u_x_snc_sd_coverage_rule');
     ruleGr.query();
@@ -210,7 +246,6 @@
       ruleOverrides[ruleKey] = ruleGr.getValue('u_required_coverage') || '';
     }
 
-    // Query classifications
     var clsGr = new GlideRecord('u_x_snc_sd_classification');
     if (runId) {
       clsGr.addQuery('u_analysis_run', runId);
@@ -220,7 +255,6 @@
     }
     clsGr.query();
 
-    // Build: company → product → topic → counts
     var tree = {};
 
     while (clsGr.next()) {
@@ -233,10 +267,7 @@
 
       var companyName = prodInfo.company || 'Unassigned';
       var productName = prodInfo.name || 'Unassigned';
-      var topicName = topicInfo.name;
-      var parentCat = topicInfo.parent;
 
-      // Initialize tree nodes
       if (!tree[companyName]) {
         tree[companyName] = { name: companyName, products: {} };
       }
@@ -247,45 +278,39 @@
           topics: {}
         };
       }
-      var topicKey = topicRef || topicName;
+
+      var topicKey = topicRef || topicInfo.name;
       if (!tree[companyName].products[productName].topics[topicKey]) {
-        // Determine coverage rule
         var defaultRule = deriveDefaultRule(topicInfo.solution);
         var overrideKey = topicRef + '|' + prodInfo.sys_id;
         var rule = ruleOverrides[overrideKey] || defaultRule;
 
         tree[companyName].products[productName].topics[topicKey] = {
-          name: topicName,
-          parent: parentCat,
+          name: topicInfo.name,
+          parent: topicInfo.parent,
           sys_id: topicRef,
           product_sys_id: prodInfo.sys_id,
           rule: rule,
-          kb: 0,
-          catalog: 0,
-          incidents: 0,
+          kb: 0, catalog: 0, incidents: 0,
           records: []
         };
       }
 
       var topicNode = tree[companyName].products[productName].topics[topicKey];
-
-      // Count by source type
       if (srcType === 'kb_knowledge') topicNode.kb++;
       else if (srcType === 'sc_cat_item') topicNode.catalog++;
       else if (srcType === 'incident') topicNode.incidents++;
 
-      // Store sample records (max 5 per topic)
       if (topicNode.records.length < 5) {
         topicNode.records.push({
           type: srcType,
           number: clsGr.getValue('u_source_number') || '',
-          description: clsGr.getValue('u_source_description') || '',
-          close_notes: clsGr.getValue('u_close_notes') || ''
+          description: clsGr.getValue('u_source_description') || ''
         });
       }
     }
 
-    // Convert to arrays and sort
+    // Convert to arrays
     var companies = [];
     for (var ck in tree) {
       var companyNode = tree[ck];
@@ -298,9 +323,7 @@
         }
         topics.sort(function(a, b) { return (b.incidents + b.kb + b.catalog) - (a.incidents + a.kb + a.catalog); });
         products.push({
-          name: prodNode.name,
-          sys_id: prodNode.sys_id,
-          topics: topics,
+          name: prodNode.name, sys_id: prodNode.sys_id, topics: topics,
           totalKB: topics.reduce(function(s, t) { return s + t.kb; }, 0),
           totalCatalog: topics.reduce(function(s, t) { return s + t.catalog; }, 0),
           totalIncidents: topics.reduce(function(s, t) { return s + t.incidents; }, 0)
@@ -308,8 +331,7 @@
       }
       products.sort(function(a, b) { return (b.totalIncidents + b.totalKB + b.totalCatalog) - (a.totalIncidents + a.totalKB + a.totalCatalog); });
       companies.push({
-        name: companyNode.name,
-        products: products,
+        name: companyNode.name, products: products,
         totalKB: products.reduce(function(s, p) { return s + p.totalKB; }, 0),
         totalCatalog: products.reduce(function(s, p) { return s + p.totalCatalog; }, 0),
         totalIncidents: products.reduce(function(s, p) { return s + p.totalIncidents; }, 0)
@@ -358,10 +380,7 @@
           topic.covered = gaps.length === 0;
           topic.gaps = gaps;
           topic.gapStatus = gaps.length > 0 ? 'gap' : 'covered';
-          if (!topic.covered) {
-            prodGaps++;
-            compGaps++;
-          }
+          if (!topic.covered) { prodGaps++; compGaps++; }
         }
         companies[c].products[p].gapCount = prodGaps;
       }
