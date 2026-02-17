@@ -1,4 +1,4 @@
-/* SCSS - v6: Company → Product → Topic hierarchy */
+/* SCSS - v6.1: Fixes registry layout, adds progress bar */
 
 $navy: #2E3D49;
 $navy-lt: #485A67;
@@ -39,7 +39,7 @@ $white: #FFFFFF;
 .sd-btn-full { width: 100%; padding: 14px; }
 .sd-btn-confirm { background: $green-lt; color: $green; border: none; }
 .sd-btn-edit { &:hover { background: $border; } }
-.sd-btn-remove { background: none; border: none; color: $red; font-weight: 600; cursor: pointer; font-size: 0.8rem; }
+.sd-btn-remove { background: none; border: none; color: $red; font-weight: 600; cursor: pointer; font-size: 0.8rem; padding: 5px 8px; }
 
 .sd-input { width: 100%; padding: 10px 14px; border: 1px solid $border; border-radius: 6px; font-size: 0.9rem; background: $bg; outline: none; &:focus { border-color: $navy-lt; background: $white; } }
 .sd-select { appearance: auto; cursor: pointer; }
@@ -56,6 +56,13 @@ $white: #FFFFFF;
 .sd-nav-footer { margin-top: 20px; display: flex; justify-content: flex-end; }
 .sd-empty { padding: 40px; text-align: center; font-size: 0.95rem; color: $txt; }
 
+/* Progress */
+.sd-progress-card { margin-top: 16px; }
+.sd-progress-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; color: $navy; }
+.sd-progress-pct { font-weight: 700; }
+.sd-progress-bar { height: 6px; background: $lt; border-radius: 3px; overflow: hidden; }
+.sd-progress-fill { height: 100%; border-radius: 3px; background: $teal; transition: width 0.3s; }
+
 /* Hero */
 .sd-hero { background: linear-gradient(135deg, $teal, $green); padding: 36px 32px 32px; color: white; }
 .sd-hero-inner { max-width: 1200px; margin: 0 auto; }
@@ -71,7 +78,7 @@ $white: #FFFFFF;
 .sd-home-card-title { font-size: 1.1rem; font-weight: 700; color: $txt-dk; margin-bottom: 8px; }
 .sd-home-card-desc { font-size: 0.85rem; color: $txt; }
 
-/* Steps indicator */
+/* Steps */
 .sd-steps { display: flex; gap: 0; margin-bottom: 24px; }
 .sd-step { flex: 1; padding: 10px 16px; text-align: center; font-size: 0.85rem; font-weight: 600; color: $txt; background: $lt; &:first-child { border-radius: 8px 0 0 8px; } &:last-child { border-radius: 0 8px 8px 0; } &.active { background: $navy; color: white; } &.done { background: $green-lt; color: $green; } }
 
@@ -84,7 +91,6 @@ $white: #FFFFFF;
 .sd-col-md { width: 120px; text-align: center; flex-shrink: 0; }
 .sd-val { font-size: 0.9rem; font-weight: 600; }
 
-/* Row levels */
 .sd-row-l1 { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid $lt; cursor: pointer; &:hover { background: rgba(0,0,0,0.015); } strong { font-size: 1rem; color: $txt-dk; } }
 .sd-row-l2 { display: flex; align-items: center; padding: 12px 16px 12px 44px; border-bottom: 1px solid $border; cursor: pointer; background: #F8F9FA; }
 .sd-row-l3 { display: flex; align-items: center; padding: 10px 16px 10px 76px; border-bottom: 1px solid $lt; background: #F1F2F3; }
@@ -100,14 +106,18 @@ $white: #FFFFFF;
 .sd-status-covered { font-size: 0.85rem; font-weight: 600; color: $green; }
 .sd-status-gap { font-size: 0.85rem; font-weight: 600; color: $red; cursor: pointer; text-decoration: underline; }
 
-/* Registry */
-.sd-reg-card { background: $white; border: 1px solid $border; border-radius: 8px; margin-bottom: 10px; padding: 16px 20px; &.confirmed { border-left: 3px solid $green; } }
-.sd-reg-card-main { display: flex; justify-content: space-between; align-items: center; }
+/* Registry - FIXED layout */
+.sd-reg-card { background: $white; border: 1px solid $border; border-radius: 8px; margin-bottom: 10px; padding: 0; overflow: hidden; &.confirmed { border-left: 3px solid $green; } }
+.sd-reg-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid $lt; }
 .sd-reg-left { display: flex; align-items: center; gap: 14px; }
-.sd-reg-status { width: 30px; height: 30px; border-radius: 50%; background: $lt; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: $txt; font-weight: 700; &.done { background: $green-lt; color: $green; } }
+.sd-reg-status { width: 30px; height: 30px; border-radius: 50%; background: $lt; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: $txt; font-weight: 700; flex-shrink: 0; &.done { background: $green-lt; color: $green; } }
 .sd-reg-company { font-size: 0.95rem; font-weight: 600; color: $txt-dk; }
+.sd-reg-actions-co { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.sd-reg-product-list { padding: 0; }
+.sd-reg-product-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px 10px 64px; border-bottom: 1px solid $lt; &:last-child { border-bottom: none; } }
+.sd-reg-product-mentions { font-size: 0.75rem; color: $txt; margin-left: auto; margin-right: 12px; }
+.sd-reg-product-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .sd-reg-products { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
-.sd-reg-right { display: flex; align-items: center; gap: 10px; }
 .sd-add-btn { border: 2px dashed $border; border-radius: 8px; padding: 16px; text-align: center; font-size: 0.9rem; font-weight: 600; color: $txt; cursor: pointer; margin-bottom: 20px; }
 
 /* Reports */
