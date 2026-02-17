@@ -1,6 +1,5 @@
-// SD - Classify Supply: Batch Classification Script (FIXED)
-// Correct payload format: payload.inputValues
-// Correct response path: result.capabilities[CAPABILITY_ID].response
+// SD - Classify Supply v3: No gap flags, stores extracted company/product
+// Skill sys_id: 2d09b3ce2f4bfa90308dfb3fafa4e3d9
 
 var CAPABILITY_ID = '2d09b3ce2f4bfa90308dfb3fafa4e3d9';
 
@@ -17,7 +16,7 @@ runGr.setValue('u_name', runName);
 runGr.setValue('u_status', 'Processing');
 runGr.setValue('u_run_date', new GlideDateTime());
 var runSysId = runGr.insert();
-gs.info('SD: Created run ' + runSysId);
+gs.info('SD: Created supply run ' + runSysId);
 
 var totalProcessed = 0;
 var totalClassified = 0;
@@ -26,7 +25,6 @@ var totalClassified = 0;
 function classifyArtifact(sourceType, title, description) {
   try {
     var cleanDesc = description ? description.replace(/<[^>]*>/g, '').substring(0, 3000) : '';
-
     var request = {
       executionRequests: [{
         capabilityId: CAPABILITY_ID,
@@ -39,20 +37,14 @@ function classifyArtifact(sourceType, title, description) {
         }
       }]
     };
-
     var result = sn_one_extend.OneExtendUtil.execute(request);
-
-    // Extract response from capabilities
     if (result && result.capabilities && result.capabilities[CAPABILITY_ID]) {
       var responseStr = result.capabilities[CAPABILITY_ID].response;
-      if (responseStr) {
-        var parsed = JSON.parse(responseStr);
-        return parsed;
-      }
+      if (responseStr) return JSON.parse(responseStr);
     }
     return null;
   } catch (e) {
-    gs.warn('SD: Classification error for "' + title + '": ' + e.message);
+    gs.warn('SD: Error classifying "' + title + '": ' + e.message);
     return null;
   }
 }
@@ -99,14 +91,13 @@ function writeClassification(runId, sourceType, sourceNumber, sourceSysId, sourc
   cls.setValue('u_service_opportunity', result.topic_sys_id);
   cls.setValue('u_confidence_score', result.confidence || 0);
 
-  if (sourceType === 'kb_knowledge') {
-    cls.setValue('u_kb_gap', 'false');
-    cls.setValue('u_catalog_gap', 'true');
-  } else if (sourceType === 'sc_cat_item') {
-    cls.setValue('u_kb_gap', 'true');
-    cls.setValue('u_catalog_gap', 'false');
-  }
+  // Store raw AI extraction
+  cls.setValue('u_extracted_company', result.company || '');
+  cls.setValue('u_extracted_product', result.product || '');
 
+  // No gap flags — gaps computed dynamically from coverage rules
+
+  // Match/create product in registry
   if (result.company || result.product) {
     var prodSysId = findOrCreateProduct(runId, result.company, result.product);
     if (prodSysId) cls.setValue('u_product', prodSysId);
@@ -169,4 +160,4 @@ runGr.setValue('u_status', 'Complete');
 runGr.setValue('u_total_incidents_analyzed', totalProcessed);
 runGr.update();
 
-gs.info('SD: ✓ Run complete. Processed: ' + totalProcessed + ' | Classified: ' + totalClassified);
+gs.info('SD: ✓ Supply run complete. Processed: ' + totalProcessed + ' | Classified: ' + totalClassified);
