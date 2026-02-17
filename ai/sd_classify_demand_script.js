@@ -1,14 +1,11 @@
-// SD - Classify Demand: Batch Incident Classification Script
-// Calls SDClassifyDemand NASK skill for each incident
-// Matches against confirmed product registry (does not create new products)
-//
+// SD - Classify Demand v2: No gap flags, stores extracted company/product
 // Skill sys_id: 158a0c9a2f0ffa90308dfb3fafa4e352
 
 var CAPABILITY_ID = '158a0c9a2f0ffa90308dfb3fafa4e352';
 
 // ─── CONFIGURATION ─────────────────────────────────────
 var runName = 'Demand Classification - ' + new GlideDateTime().getDisplayValue();
-var incLimit = 5;       // start small, increase after testing
+var incLimit = 50;
 var dateRangeDays = 90;
 
 // ─── CREATE RUN RECORD ─────────────────────────────────
@@ -22,16 +19,15 @@ gs.info('SD: Created demand run ' + runSysId);
 
 var totalProcessed = 0;
 var totalClassified = 0;
+var totalUnmatched = 0;
 
-// ─── BUILD PRODUCT LOOKUP (for matching AI response to registry) ───
+// ─── BUILD PRODUCT LOOKUP ──────────────────────────────
 var prodLookup = {};
 var plGr = new GlideRecord('u_x_snc_sd_company_product');
 plGr.query();
 while (plGr.next()) {
-  // Index by company|product
   var key = (plGr.getValue('u_company_name') || '').toLowerCase() + '|' + (plGr.getValue('u_name') || '').toLowerCase();
   prodLookup[key] = plGr.getUniqueValue();
-  // Also index by product name alone
   var prodOnly = (plGr.getValue('u_name') || '').toLowerCase();
   if (!prodLookup[prodOnly]) prodLookup[prodOnly] = plGr.getUniqueValue();
 }
@@ -40,7 +36,6 @@ while (plGr.next()) {
 function classifyIncident(title, description) {
   try {
     var cleanDesc = description ? description.replace(/<[^>]*>/g, '').substring(0, 3000) : '';
-
     var request = {
       executionRequests: [{
         capabilityId: CAPABILITY_ID,
@@ -53,38 +48,29 @@ function classifyIncident(title, description) {
         }
       }]
     };
-
     var result = sn_one_extend.OneExtendUtil.execute(request);
-
     if (result && result.capabilities && result.capabilities[CAPABILITY_ID]) {
       var responseStr = result.capabilities[CAPABILITY_ID].response;
-      if (responseStr) {
-        return JSON.parse(responseStr);
-      }
+      if (responseStr) return JSON.parse(responseStr);
     }
     return null;
   } catch (e) {
-    gs.warn('SD: Classification error for "' + title + '": ' + e.message);
+    gs.warn('SD: Error classifying "' + title + '": ' + e.message);
     return null;
   }
 }
 
-// ─── HELPER: Match product from AI response to registry ─
+// ─── HELPER: Match product from registry ───────────────
 function matchProduct(company, product) {
   if (!company && !product) return '';
-
-  // Try company|product match first
   if (company && product) {
     var key = company.toLowerCase() + '|' + product.toLowerCase();
     if (prodLookup[key]) return prodLookup[key];
   }
-
-  // Try product name alone
   if (product) {
     var prodKey = product.toLowerCase();
     if (prodLookup[prodKey]) return prodLookup[prodKey];
   }
-
   return '';
 }
 
@@ -103,14 +89,19 @@ function writeClassification(runId, sourceNumber, sourceSysId, sourceDesc, close
   cls.setValue('u_service_opportunity', result.topic_sys_id);
   cls.setValue('u_confidence_score', result.confidence || 0);
 
-  // For incidents, gap flags will be computed later by comparing against supply
-  cls.setValue('u_kb_gap', 'false');
-  cls.setValue('u_catalog_gap', 'false');
+  // Store raw AI extraction
+  cls.setValue('u_extracted_company', result.company || '');
+  cls.setValue('u_extracted_product', result.product || '');
+
+  // No gap flags — gaps computed dynamically from coverage rules
 
   // Match product from registry
   var prodSysId = matchProduct(result.company, result.product);
   if (prodSysId) {
     cls.setValue('u_product', prodSysId);
+  } else if (result.company || result.product) {
+    cls.setValue('u_in_other_bucket', true);
+    totalUnmatched++;
   }
 
   cls.insert();
@@ -120,12 +111,9 @@ function writeClassification(runId, sourceNumber, sourceSysId, sourceDesc, close
 // ─── PROCESS INCIDENTS ─────────────────────────────────
 gs.info('SD: Processing incidents...');
 var incGr = new GlideRecord('incident');
-
-// Date range filter
 var startDate = new GlideDateTime();
 startDate.addDaysLocalTime(-dateRangeDays);
 incGr.addQuery('sys_created_on', '>=', startDate);
-
 incGr.setLimit(incLimit);
 incGr.orderByDesc('sys_created_on');
 incGr.query();
@@ -138,7 +126,6 @@ while (incGr.next()) {
   var incCloseNotes = incGr.getValue('close_notes') || '';
   var incSysId = incGr.getUniqueValue();
 
-  // Combine description + close_notes for richer context
   var fullDesc = incTitle + '\n' + incDesc + '\n' + incCloseNotes;
 
   var result = classifyIncident(incTitle, fullDesc);
@@ -154,6 +141,7 @@ while (incGr.next()) {
 runGr.get(runSysId);
 runGr.setValue('u_status', 'Complete');
 runGr.setValue('u_total_incidents_analyzed', totalProcessed);
+runGr.setValue('u_items_in_other_bucket', totalUnmatched);
 runGr.update();
 
-gs.info('SD: ✓ Demand run complete. Processed: ' + totalProcessed + ' | Classified: ' + totalClassified);
+gs.info('SD: ✓ Demand run complete. Processed: ' + totalProcessed + ' | Classified: ' + totalClassified + ' | Unmatched: ' + totalUnmatched);
