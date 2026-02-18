@@ -1,0 +1,398 @@
+// SD - Complete Data Model Setup
+// Run in Background Scripts on a fresh instance
+// Creates all tables, fields, and taxonomy topics
+// Safe to re-run — checks for existing before creating
+
+gs.info('SD SETUP: Starting data model setup...');
+
+// ═══════════════════════════════════════════════════════
+// TABLE 1: u_x_snc_sd_opportunity (Service Opportunity Taxonomy)
+// ═══════════════════════════════════════════════════════
+var oppCheck = new GlideRecord('u_x_snc_sd_opportunity');
+if (!oppCheck.isValid()) {
+  var t1 = new GlideRecord('sys_db_object');
+  t1.initialize();
+  t1.setValue('name', 'u_x_snc_sd_opportunity');
+  t1.setValue('label', 'SD Service Opportunity');
+  t1.insert();
+  
+  var oppFields = [
+    { name: 'u_name', label: 'Name', type: 'string', max: '200' },
+    { name: 'u_parent_category', label: 'Parent Category', type: 'string', max: '200' },
+    { name: 'u_solution_type', label: 'Solution Type', type: 'string', max: '200' },
+    { name: 'u_description', label: 'Description', type: 'string', max: '4000' },
+    { name: 'u_active', label: 'Active', type: 'boolean', max: '' },
+    { name: 'u_incident_volume', label: 'Incident Volume', type: 'integer', max: '' },
+    { name: 'u_trend_pct', label: 'Trend %', type: 'integer', max: '' },
+    { name: 'u_automation_potential', label: 'Automation Potential', type: 'string', max: '40' },
+    { name: 'u_universal_category', label: 'Universal Category', type: 'string', max: '200' },
+    { name: 'u_number', label: 'Number', type: 'string', max: '40' }
+  ];
+  for (var i = 0; i < oppFields.length; i++) {
+    var f = oppFields[i];
+    var d = new GlideRecord('sys_dictionary');
+    d.initialize();
+    d.setValue('name', 'u_x_snc_sd_opportunity');
+    d.setValue('element', f.name);
+    d.setValue('column_label', f.label);
+    d.setValue('internal_type', f.type);
+    if (f.max) d.setValue('max_length', f.max);
+    d.insert();
+  }
+  gs.info('SD SETUP: Created u_x_snc_sd_opportunity table');
+} else {
+  gs.info('SD SETUP: u_x_snc_sd_opportunity exists');
+}
+
+// ═══════════════════════════════════════════════════════
+// TABLE 2: u_x_snc_sd_classification (Classification Records)
+// ═══════════════════════════════════════════════════════
+var clsCheck = new GlideRecord('u_x_snc_sd_classification');
+if (!clsCheck.isValid()) {
+  var t2 = new GlideRecord('sys_db_object');
+  t2.initialize();
+  t2.setValue('name', 'u_x_snc_sd_classification');
+  t2.setValue('label', 'SD Classification');
+  t2.insert();
+  
+  var clsFields = [
+    { name: 'u_analysis_run', label: 'Analysis Run', type: 'reference', ref: 'u_x_snc_sd_analysis_run', max: '' },
+    { name: 'u_service_opportunity', label: 'Service Opportunity', type: 'reference', ref: 'u_x_snc_sd_opportunity', max: '' },
+    { name: 'u_product', label: 'Product', type: 'reference', ref: 'u_x_snc_sd_company_product', max: '' },
+    { name: 'u_source_type', label: 'Source Type', type: 'string', max: '40' },
+    { name: 'u_source_number', label: 'Source Number', type: 'string', max: '40' },
+    { name: 'u_source_sys_id', label: 'Source Sys ID', type: 'string', max: '40' },
+    { name: 'u_source_description', label: 'Source Description', type: 'string', max: '500' },
+    { name: 'u_close_notes', label: 'Close Notes', type: 'string', max: '4000' },
+    { name: 'u_confidence_score', label: 'Confidence Score', type: 'integer', max: '' },
+    { name: 'u_in_other_bucket', label: 'In Other Bucket', type: 'boolean', max: '' },
+    { name: 'u_kb_gap', label: 'KB Gap', type: 'boolean', max: '' },
+    { name: 'u_catalog_gap', label: 'Catalog Gap', type: 'boolean', max: '' },
+    { name: 'u_extracted_company', label: 'Extracted Company', type: 'string', max: '200' },
+    { name: 'u_extracted_product', label: 'Extracted Product', type: 'string', max: '200' }
+  ];
+  for (var j = 0; j < clsFields.length; j++) {
+    var cf = clsFields[j];
+    var cd = new GlideRecord('sys_dictionary');
+    cd.initialize();
+    cd.setValue('name', 'u_x_snc_sd_classification');
+    cd.setValue('element', cf.name);
+    cd.setValue('column_label', cf.label);
+    cd.setValue('internal_type', cf.type);
+    if (cf.ref) cd.setValue('reference', cf.ref);
+    if (cf.max) cd.setValue('max_length', cf.max);
+    cd.insert();
+  }
+  gs.info('SD SETUP: Created u_x_snc_sd_classification table');
+} else {
+  // Add fields that might be missing on existing table
+  var addFields = [
+    { name: 'u_extracted_company', label: 'Extracted Company', type: 'string', max: '200' },
+    { name: 'u_extracted_product', label: 'Extracted Product', type: 'string', max: '200' }
+  ];
+  for (var af = 0; af < addFields.length; af++) {
+    if (!clsCheck.isValidField(addFields[af].name)) {
+      var afd = new GlideRecord('sys_dictionary');
+      afd.initialize();
+      afd.setValue('name', 'u_x_snc_sd_classification');
+      afd.setValue('element', addFields[af].name);
+      afd.setValue('column_label', addFields[af].label);
+      afd.setValue('internal_type', addFields[af].type);
+      afd.setValue('max_length', addFields[af].max);
+      afd.insert();
+      gs.info('SD SETUP: Added ' + addFields[af].name + ' to classification table');
+    }
+  }
+  gs.info('SD SETUP: u_x_snc_sd_classification exists');
+}
+
+// ═══════════════════════════════════════════════════════
+// TABLE 3: u_x_snc_sd_company_product (Product Registry)
+// ═══════════════════════════════════════════════════════
+var prodCheck = new GlideRecord('u_x_snc_sd_company_product');
+if (!prodCheck.isValid()) {
+  var t3 = new GlideRecord('sys_db_object');
+  t3.initialize();
+  t3.setValue('name', 'u_x_snc_sd_company_product');
+  t3.setValue('label', 'SD Company Product');
+  t3.insert();
+  
+  var prodFields = [
+    { name: 'u_name', label: 'Name', type: 'string', max: '200' },
+    { name: 'u_company_name', label: 'Company Name', type: 'string', max: '200' },
+    { name: 'u_normalized_name', label: 'Normalized Name', type: 'string', max: '200' },
+    { name: 'u_type', label: 'Type', type: 'string', max: '40' },
+    { name: 'u_owner', label: 'Owner', type: 'reference', ref: 'sys_user', max: '' },
+    { name: 'u_verified', label: 'Verified', type: 'boolean', max: '' },
+    { name: 'u_active', label: 'Active', type: 'boolean', max: '' },
+    { name: 'u_is_master_entry', label: 'Is Master Entry', type: 'boolean', max: '' },
+    { name: 'u_mention_count', label: 'Mention Count', type: 'integer', max: '' },
+    { name: 'u_analysis_run', label: 'Analysis Run', type: 'reference', ref: 'u_x_snc_sd_analysis_run', max: '' }
+  ];
+  for (var k = 0; k < prodFields.length; k++) {
+    var pf = prodFields[k];
+    var pd = new GlideRecord('sys_dictionary');
+    pd.initialize();
+    pd.setValue('name', 'u_x_snc_sd_company_product');
+    pd.setValue('element', pf.name);
+    pd.setValue('column_label', pf.label);
+    pd.setValue('internal_type', pf.type);
+    if (pf.ref) pd.setValue('reference', pf.ref);
+    if (pf.max) pd.setValue('max_length', pf.max);
+    pd.insert();
+  }
+  gs.info('SD SETUP: Created u_x_snc_sd_company_product table');
+} else {
+  // Add u_active if missing
+  if (!prodCheck.isValidField('u_active')) {
+    var actD = new GlideRecord('sys_dictionary');
+    actD.initialize();
+    actD.setValue('name', 'u_x_snc_sd_company_product');
+    actD.setValue('element', 'u_active');
+    actD.setValue('column_label', 'Active');
+    actD.setValue('internal_type', 'boolean');
+    actD.setValue('default_value', 'true');
+    actD.insert();
+    gs.info('SD SETUP: Added u_active to company_product table');
+  }
+  gs.info('SD SETUP: u_x_snc_sd_company_product exists');
+}
+
+// ═══════════════════════════════════════════════════════
+// TABLE 4: u_x_snc_sd_analysis_run (Analysis Runs)
+// ═══════════════════════════════════════════════════════
+var runCheck = new GlideRecord('u_x_snc_sd_analysis_run');
+if (!runCheck.isValid()) {
+  var t4 = new GlideRecord('sys_db_object');
+  t4.initialize();
+  t4.setValue('name', 'u_x_snc_sd_analysis_run');
+  t4.setValue('label', 'SD Analysis Run');
+  t4.insert();
+  
+  var runFields = [
+    { name: 'u_name', label: 'Name', type: 'string', max: '200' },
+    { name: 'u_number', label: 'Number', type: 'string', max: '40' },
+    { name: 'u_description', label: 'Description', type: 'journal_input', max: '' },
+    { name: 'u_run_date', label: 'Run Date', type: 'glide_date_time', max: '' },
+    { name: 'u_run_by', label: 'Run By', type: 'reference', ref: 'sys_user', max: '' },
+    { name: 'u_status', label: 'Status', type: 'string', max: '40' },
+    { name: 'u_total_incidents_analyzed', label: 'Total Analyzed', type: 'integer', max: '' },
+    { name: 'u_gaps_identified', label: 'Gaps Identified', type: 'integer', max: '' },
+    { name: 'u_items_in_other_bucket', label: 'Unmatched', type: 'integer', max: '' },
+    { name: 'u_confidence_threshold', label: 'Confidence Threshold', type: 'integer', max: '' }
+  ];
+  for (var m = 0; m < runFields.length; m++) {
+    var rf = runFields[m];
+    var rd = new GlideRecord('sys_dictionary');
+    rd.initialize();
+    rd.setValue('name', 'u_x_snc_sd_analysis_run');
+    rd.setValue('element', rf.name);
+    rd.setValue('column_label', rf.label);
+    rd.setValue('internal_type', rf.type);
+    if (rf.ref) rd.setValue('reference', rf.ref);
+    if (rf.max) rd.setValue('max_length', rf.max);
+    rd.insert();
+  }
+  gs.info('SD SETUP: Created u_x_snc_sd_analysis_run table');
+} else {
+  gs.info('SD SETUP: u_x_snc_sd_analysis_run exists');
+}
+
+// ═══════════════════════════════════════════════════════
+// TABLE 5: u_x_snc_sd_coverage_rule (Coverage Rules)
+// ═══════════════════════════════════════════════════════
+var crCheck = new GlideRecord('u_x_snc_sd_coverage_rule');
+if (!crCheck.isValid()) {
+  var t5 = new GlideRecord('sys_db_object');
+  t5.initialize();
+  t5.setValue('name', 'u_x_snc_sd_coverage_rule');
+  t5.setValue('label', 'SD Coverage Rule');
+  t5.insert();
+  
+  var crFields = [
+    { name: 'u_service_opportunity', label: 'Service Opportunity', type: 'reference', ref: 'u_x_snc_sd_opportunity', max: '' },
+    { name: 'u_product', label: 'Product', type: 'reference', ref: 'u_x_snc_sd_company_product', max: '' },
+    { name: 'u_required_coverage', label: 'Required Coverage', type: 'string', ref: '', max: '40' },
+    { name: 'u_overridden_by', label: 'Overridden By', type: 'reference', ref: 'sys_user', max: '' },
+    { name: 'u_override_reason', label: 'Override Reason', type: 'string', ref: '', max: '500' },
+    { name: 'u_overridden_on', label: 'Overridden On', type: 'glide_date_time', ref: '', max: '' }
+  ];
+  for (var n = 0; n < crFields.length; n++) {
+    var crf = crFields[n];
+    var crd = new GlideRecord('sys_dictionary');
+    crd.initialize();
+    crd.setValue('name', 'u_x_snc_sd_coverage_rule');
+    crd.setValue('element', crf.name);
+    crd.setValue('column_label', crf.label);
+    crd.setValue('internal_type', crf.type);
+    if (crf.ref) crd.setValue('reference', crf.ref);
+    if (crf.max) crd.setValue('max_length', crf.max);
+    crd.insert();
+  }
+  gs.info('SD SETUP: Created u_x_snc_sd_coverage_rule table');
+} else {
+  gs.info('SD SETUP: u_x_snc_sd_coverage_rule exists');
+}
+
+// ═══════════════════════════════════════════════════════
+// TAXONOMY: Categories and Topics
+// ═══════════════════════════════════════════════════════
+gs.info('SD SETUP: Loading taxonomy...');
+
+var categories = [
+  'Collaboration & Productivity',
+  'Disk Encryption & Recovery',
+  'Document Management',
+  'Email & Communication',
+  'Endpoint Management',
+  'Hardware: Endpoints',
+  'Hardware: Peripherals & Displays',
+  'Identity & Access Management',
+  'Mobile Device Management',
+  'Network & Connectivity',
+  'Operating Systems',
+  'Printing & Scanning',
+  'Security & Compliance',
+  'Voice & Telephony',
+  'VPN & Remote Access',
+  'Web Browsing',
+  'Infrastructure',
+  'Software',
+  'Data & Storage'
+];
+
+var topics = [
+  // Collaboration & Productivity
+  { name: 'Chat app audio/video', parent: 'Collaboration & Productivity', solution: 'KB Article' },
+  { name: 'Chat app crashes', parent: 'Collaboration & Productivity', solution: 'KB Article' },
+  { name: 'Email app issues', parent: 'Collaboration & Productivity', solution: 'KB Article' },
+  { name: 'File sync issues', parent: 'Collaboration & Productivity', solution: 'KB Article' },
+  { name: 'Video conferencing issues', parent: 'Collaboration & Productivity', solution: 'KB Article' },
+  // Disk Encryption & Recovery
+  { name: 'Recovery key at boot', parent: 'Disk Encryption & Recovery', solution: 'KB Article (agent) + Automation' },
+  // Document Management
+  { name: 'PDF editor licensing', parent: 'Document Management', solution: 'KB + Catalog Item' },
+  // Email & Communication
+  { name: 'Email configuration', parent: 'Email & Communication', solution: 'KB Article' },
+  { name: 'Spam & phishing', parent: 'Email & Communication', solution: 'KB Article' },
+  // Endpoint Management
+  { name: 'Device reimaging', parent: 'Endpoint Management', solution: 'KB Article (agent)' },
+  { name: 'Driver / firmware updates', parent: 'Endpoint Management', solution: 'KB Article (agent)' },
+  // Hardware: Endpoints
+  { name: 'USB & port issues', parent: 'Hardware: Endpoints', solution: 'KB Article' },
+  { name: 'Laptop request', parent: 'Hardware: Endpoints', solution: 'Catalog Item' },
+  { name: 'Mobile device request', parent: 'Hardware: Endpoints', solution: 'Catalog Item' },
+  // Hardware: Peripherals & Displays
+  { name: 'Docking station issues', parent: 'Hardware: Peripherals & Displays', solution: 'KB Article' },
+  { name: 'Monitor problems', parent: 'Hardware: Peripherals & Displays', solution: 'KB Article' },
+  { name: 'Peripheral request', parent: 'Hardware: Peripherals & Displays', solution: 'Catalog Item' },
+  // Identity & Access Management
+  { name: 'Account lockout', parent: 'Identity & Access Management', solution: 'Self-Service + KB Article' },
+  { name: 'Distribution list changes', parent: 'Identity & Access Management', solution: 'Catalog Item' },
+  { name: 'Group membership changes', parent: 'Identity & Access Management', solution: 'Catalog Item' },
+  { name: 'MFA - update phone number', parent: 'Identity & Access Management', solution: 'Catalog Item' },
+  { name: 'MFA reset - new phone', parent: 'Identity & Access Management', solution: 'KB Article' },
+  { name: 'New employee password issuance', parent: 'Identity & Access Management', solution: 'Catalog Item' },
+  { name: 'Password reset', parent: 'Identity & Access Management', solution: 'Self-Service + KB Article' },
+  { name: 'Shared mailbox access', parent: 'Identity & Access Management', solution: 'Catalog Item + KB Article' },
+  // Mobile Device Management
+  { name: 'Device does not meet requirements', parent: 'Mobile Device Management', solution: 'KB Article' },
+  { name: 'Device out of compliance', parent: 'Mobile Device Management', solution: 'KB Article' },
+  { name: 'New device enrollment', parent: 'Mobile Device Management', solution: 'KB Article' },
+  // Network & Connectivity
+  { name: 'IP address issues', parent: 'Network & Connectivity', solution: 'KB Article' },
+  { name: 'MAC address lookup', parent: 'Network & Connectivity', solution: 'KB Article' },
+  // Operating Systems
+  { name: 'Software updates', parent: 'Operating Systems', solution: 'KB Article' },
+  { name: 'Windows navigation', parent: 'Operating Systems', solution: 'KB Article' },
+  { name: 'Windows upgrades', parent: 'Operating Systems', solution: 'KB Article' },
+  // Printing & Scanning
+  { name: 'Print client issues', parent: 'Printing & Scanning', solution: 'KB Article' },
+  { name: 'Printer offline', parent: 'Printing & Scanning', solution: 'KB Article' },
+  { name: 'Supplies request', parent: 'Printing & Scanning', solution: 'Catalog Item' },
+  // Security & Compliance
+  { name: 'Copyright & acceptable use', parent: 'Security & Compliance', solution: 'KB Article' },
+  // Voice & Telephony
+  { name: 'Calling issues', parent: 'Voice & Telephony', solution: 'KB Article' },
+  { name: 'Phone line config', parent: 'Voice & Telephony', solution: 'Catalog Item' },
+  { name: 'Softphone setup', parent: 'Voice & Telephony', solution: 'KB Article (agent)' },
+  { name: 'Voicemail PIN reset', parent: 'Voice & Telephony', solution: 'Catalog Item' },
+  // VPN & Remote Access
+  { name: 'VPN client issues', parent: 'VPN & Remote Access', solution: 'KB Article' },
+  // Web Browsing
+  { name: 'Browser settings', parent: 'Web Browsing', solution: 'KB Article' },
+  { name: 'Cookies & privacy', parent: 'Web Browsing', solution: 'KB Article' },
+  // Infrastructure
+  { name: 'Server management', parent: 'Infrastructure', solution: 'Catalog Item' },
+  { name: 'Network configuration', parent: 'Infrastructure', solution: 'Catalog Item' },
+  // Software
+  { name: 'Software license request', parent: 'Software', solution: 'Catalog Item' },
+  { name: 'Software installation', parent: 'Software', solution: 'Catalog Item + KB Article' },
+  // Data & Storage
+  { name: 'Storage request', parent: 'Data & Storage', solution: 'Catalog Item' },
+  { name: 'Database administration', parent: 'Data & Storage', solution: 'Catalog Item' }
+];
+
+// Create categories
+var catCreated = 0;
+for (var ci = 0; ci < categories.length; ci++) {
+  var catCheck2 = new GlideRecord('u_x_snc_sd_opportunity');
+  catCheck2.addQuery('u_name', categories[ci]);
+  catCheck2.addNullQuery('u_parent_category');
+  catCheck2.query();
+  if (!catCheck2.next()) {
+    var catGr = new GlideRecord('u_x_snc_sd_opportunity');
+    catGr.initialize();
+    catGr.setValue('u_name', categories[ci]);
+    catGr.setValue('u_active', true);
+    catGr.insert();
+    catCreated++;
+  }
+}
+gs.info('SD SETUP: Created ' + catCreated + ' new categories');
+
+// Create topics
+var topicCreated = 0;
+for (var ti = 0; ti < topics.length; ti++) {
+  var t = topics[ti];
+  var topicCheck = new GlideRecord('u_x_snc_sd_opportunity');
+  topicCheck.addQuery('u_name', t.name);
+  topicCheck.addQuery('u_parent_category', t.parent);
+  topicCheck.query();
+  if (!topicCheck.next()) {
+    var topicGr = new GlideRecord('u_x_snc_sd_opportunity');
+    topicGr.initialize();
+    topicGr.setValue('u_name', t.name);
+    topicGr.setValue('u_parent_category', t.parent);
+    topicGr.setValue('u_solution_type', t.solution);
+    topicGr.setValue('u_active', true);
+    topicGr.insert();
+    topicCreated++;
+  }
+}
+gs.info('SD SETUP: Created ' + topicCreated + ' new topics');
+
+// ═══════════════════════════════════════════════════════
+// VERIFICATION
+// ═══════════════════════════════════════════════════════
+gs.info('SD SETUP: --- Verification ---');
+
+var tables = ['u_x_snc_sd_opportunity', 'u_x_snc_sd_classification', 'u_x_snc_sd_company_product', 'u_x_snc_sd_analysis_run', 'u_x_snc_sd_coverage_rule'];
+for (var vi = 0; vi < tables.length; vi++) {
+  var vGr = new GlideRecord(tables[vi]);
+  gs.info('SD SETUP: ' + (vGr.isValid() ? '✓' : '✗') + ' ' + tables[vi]);
+}
+
+var topicCountGr = new GlideRecord('u_x_snc_sd_opportunity');
+topicCountGr.addQuery('u_active', true);
+topicCountGr.addNotNullQuery('u_parent_category');
+topicCountGr.query();
+gs.info('SD SETUP: ' + topicCountGr.getRowCount() + ' active topics');
+
+var catCountGr = new GlideRecord('u_x_snc_sd_opportunity');
+catCountGr.addQuery('u_active', true);
+catCountGr.addNullQuery('u_parent_category');
+catCountGr.query();
+gs.info('SD SETUP: ' + catCountGr.getRowCount() + ' categories');
+
+gs.info('SD SETUP: ✓ Complete');
