@@ -116,9 +116,17 @@
   <!-- STEP 5: REVIEW UNMATCHED -->
   <div ng-if="c.view === 'review-unmatched'" class="sd-page"><div class="sd-teal-bar"></div><div class="sd-page-body sd-medium">
     <button class="sd-back-btn" ng-click="c.setView('demand-config')">&larr; Back to Step 4</button>
-    <h1 class="sd-page-title">Review new products</h1><p class="sd-page-desc">Step 5 of 6 &mdash; products found in incidents but not in your registry.</p>
+    <h1 class="sd-page-title">Review new products</h1><p class="sd-page-desc">Step 5 of 6 &mdash; review products and incidents that need attention.</p>
     <div class="sd-steps"><div class="sd-step done">1. Supply</div><div class="sd-step done">2. Registry</div><div class="sd-step done">3. Supply results</div><div class="sd-step done">4. Demand</div><div class="sd-step active">5. New products</div><div class="sd-step">6. Analyze</div></div>
+
+    <div class="sd-card">
+      <h3 class="sd-card-heading">Review summary</h3>
+      <p class="sd-brief-text"><strong>{{c.data.unmatchedCount || 0}}</strong> incidents mentioned products not in your registry. <strong>{{c.data.noProductCount || 0}}</strong> incidents had no product identified.</p>
+    </div>
+
     <div ng-if="c.data.unmatched &amp;&amp; c.data.unmatched.length > 0">
+      <h3 class="sd-section-heading">Products not in registry</h3>
+      <p class="sd-section-desc">The AI found these in incidents but they don't match your registry.</p>
       <div class="sd-reg-card" ng-repeat="co in c.data.unmatched">
         <div class="sd-reg-header"><div class="sd-reg-left"><div class="sd-reg-status">?</div><div class="sd-reg-company">{{co.name}}</div><span class="sd-reg-review-badge">New</span></div></div>
         <div class="sd-reg-product-list"><div class="sd-reg-product-row" ng-repeat="p in co.products">
@@ -127,7 +135,25 @@
         </div></div>
       </div>
     </div>
-    <div class="sd-card" ng-if="!c.data.unmatched || c.data.unmatched.length === 0"><p class="sd-brief-text">No unmatched products found. All incident products matched your registry.</p></div>
+
+    <div ng-if="c.data.noProduct &amp;&amp; c.data.noProduct.length > 0">
+      <h3 class="sd-section-heading">Incidents without products</h3>
+      <p class="sd-section-desc">Classified to a topic but no product was identified. Review sample incidents to decide if a product should be added.</p>
+      <div class="sd-card sd-no-product-card" ng-repeat="topic in c.data.noProduct">
+        <div class="sd-no-product-header">
+          <div><div class="sd-no-product-topic">{{topic.name}}</div><div class="sd-no-product-parent">{{topic.parent}}</div></div>
+          <div class="sd-no-product-count">{{topic.count}} incident{{topic.count !== 1 ? 's' : ''}}</div>
+        </div>
+        <div class="sd-no-product-samples" ng-if="topic.samples.length > 0">
+          <div class="sd-no-product-sample" ng-repeat="s in topic.samples"><span class="sd-rec-number">{{s.number}}</span> <span class="sd-rec-desc">{{s.description}}</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sd-card" ng-if="(!c.data.unmatched || c.data.unmatched.length === 0) &amp;&amp; (!c.data.noProduct || c.data.noProduct.length === 0)">
+      <p class="sd-brief-text">No unmatched products or unidentified incidents found.</p>
+    </div>
+
     <div class="sd-nav-footer"><button class="sd-btn-primary" ng-click="c.goGaps()">Next: Analyze results &rarr;</button></div>
   </div></div>
 
