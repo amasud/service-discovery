@@ -2,49 +2,71 @@
 
 ## Open Issues
 
-### Dashboard
-- [ ] Font sizes still need review after SN deployment
-- [ ] Coverage % rollup — needs validation with real classified data
-- [ ] Records click shows empty when no classifications exist for that topic (expected until AI runs)
-- [ ] Gaps Only filter — verify with real data after classification runs
+### Step 1: Supply Analysis
+- [ ] Report name should be required field
+- [ ] Limit is hardcoded to 10 — needs UI control for KB and catalog limits separately
+- [ ] Long-running analysis needs async execution (Flow Designer) for large datasets
 
-### New Run
-- [ ] Filter fields (Assignment Groups, KB, Catalog) are text inputs — should be multi-select reference pickers in Phase 2
-- [ ] Run execution is synchronous — should be async (Flow Designer) for large datasets
-- [ ] Wire "Classify Records" button to call sd_classify_supply.js instead of keyword matcher
+### Step 2: Registry
+- [ ] Edit/rename company and product names
+- [ ] Merge duplicate products
+- [ ] Show record counts by type (how many KB, catalog, incidents per product)
 
-### Registry
-- [ ] Edit/Save doesn't persist to server (client-side only)
-- [ ] Add Company doesn't persist to server
-- [ ] Need "Merge" functionality for duplicate products
-- [ ] Unmatched tab is empty placeholder
+### Step 3: Supply Results
+- [ ] Catalog items with no product show under "(No product identified)" — review if this is helpful
+- [ ] Need ability to manually reassign a classification to a different topic/product
 
-### AI / Classification
-- [ ] Batch script takes ~3 sec per record — 100 records = 5 min. Consider async execution.
-- [ ] Need to add u_extracted_company and u_extracted_product fields to classification table
-- [ ] Gap flags (u_kb_gap, u_catalog_gap) should be computed dynamically, not set per-record
-- [ ] Test with real instance data — current demo data is limited
-- [ ] Build SD - Classify Demand skill (Pass 3: incidents)
-- [ ] Build gap analysis logic (Pass 4: compare supply vs demand)
+### Step 4: Demand Analysis
+- [ ] Date filters and assignment group filters not yet passed to NASK call
+- [ ] Limit options (50/100/250/500) need to work — currently hardcoded
+- [ ] Timeout risk for large batches — 50 incidents × 3 sec = 2.5 min
 
-### Data Model
-- [ ] u_x_snc_sd_classification needs u_extracted_company (string) field
-- [ ] u_x_snc_sd_classification needs u_extracted_product (string) field
+### Step 5: New Products
+- [ ] Shows "No unmatched products" even when many incidents have no product — needs to also show incidents without products grouped by topic for review
+- [ ] "Add to registry" and "Ignore" buttons not wired up
+
+### Step 6: Analyze Results
+- [ ] Coverage rule save works but doesn't refresh gap status in UI immediately
+- [ ] Some incidents about domain-specific apps (360 Operations, FM2) not in taxonomy — consider "Other/Uncategorized" bucket
+- [ ] Need export capability (CSV/Excel)
+
+### Registry (Global)
+- [ ] Edit/rename not implemented
+- [ ] No way to merge two products into one
+
+### Reports
+- [ ] Report detail view just loads gaps — should show the specific run's data
+- [ ] No way to delete old reports/runs
+
+### NASK Skills
+- [ ] Demand skill test values should be cleared (same fix as supply)
+- [ ] Demand prompt should match supply prompt improvements
+- [ ] Consider adding "360 Operations", "FM2" etc. to taxonomy based on incident patterns
 
 ## Completed
-- [x] GitHub repo established with widget code
-- [x] Data model documented (data-model/data_model.md)
-- [x] Preview artifact workflow for UI iteration
-- [x] NASK skill created and tested (SDClassifySupply)
-- [x] Batch classification script written and debugged (payload format, response parsing)
-- [x] Coverage modal split into Covered/Gaps sections
-- [x] Gap columns show type + count at all 3 levels
-- [x] ServiceNow portal styling applied
+- [x] NASK skills created and tested (SDClassifySupply, SDClassifyDemand)
+- [x] Skills wired into widget — buttons invoke real AI
+- [x] Payload format fixed (Format B: direct payload)
+- [x] Test values cleared from supply skill inputs
+- [x] Prompt improved: no hallucinated products, honest confidence
+- [x] Deduplication: skip already-classified records
+- [x] Source_type case normalization
+- [x] Boolean field comparison fixed (verified, active)
+- [x] Registry confirm/confirmed visual state working
+- [x] Hide/unhide with soft delete (u_active field)
+- [x] Show Hidden toggle
+- [x] 6-step guided flow
+- [x] Company → Product → Topic hierarchy
+- [x] Clickable counts with records drill-down modal
+- [x] Coverage rule modal with save
+- [x] Taxonomy expanded: 50 topics, 19 categories
+- [x] Data model: coverage rules table, extracted fields, active field
+- [x] "(No product identified)" instead of filtering out unassigned
 
-## Next Steps (Priority Order)
-1. Run batch classification on real KB + catalog data
-2. Review product registry results
-3. Build SD - Classify Demand skill for incidents
-4. Wire classification into the widget's "Classify Records" button
-5. Compute gap flags dynamically from classification data
-6. Dashboard polish pass
+## Next Session Priorities
+1. Step 5: Show incidents without products for review
+2. Run larger demand analysis and validate
+3. Edit/rename on registry
+4. Pass filter parameters to demand analysis
+5. Async execution for large batches
+6. Demand skill prompt improvements + clear test values
