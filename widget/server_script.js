@@ -12,10 +12,14 @@
     input.productSysId = data.productSysId || '';
     input.companyName = data.companyName || '';
     input.productName = data.productName || '';
-    input.companyName = data.companyName || '';
     input.topicSysId = data.topicSysId || '';
     input.rule = data.rule || '';
     input.includeHidden = data.includeHidden || '';
+    input.reportName = data.reportName || '';
+    input.kbState = data.kbState || '';
+    input.limit = data.limit || '';
+    input.dateFrom = data.dateFrom || '';
+    input.dateTo = data.dateTo || '';
   }
 
   if (input && input.action) {
@@ -29,6 +33,185 @@
         if (data.supplyData.companies[si].name !== 'Unassigned') sf.push(data.supplyData.companies[si]);
       }
       data.supplyData.companies = sf;
+    }
+
+    // ═══════ RUN SUPPLY ANALYSIS (invokes NASK) ═════════
+    if (input.action === 'runSupplyAnalysis') {
+      handled = true;
+      var SUPPLY_SKILL = '2d09b3ce2f4bfa90308dfb3fafa4e3d9';
+      var kbState = input.kbState || 'published';
+      var limit = parseInt(input.limit) || 10;
+      var reportName = input.reportName || 'Supply Analysis - ' + new GlideDateTime().getDisplayValue();
+
+      // Create run
+      var runGr = new GlideRecord('u_x_snc_sd_analysis_run');
+      runGr.initialize();
+      runGr.setValue('u_name', reportName);
+      runGr.setValue('u_status', 'Processing');
+      runGr.setValue('u_run_date', new GlideDateTime());
+      var runSysId = runGr.insert();
+
+      var totalProcessed = 0;
+      var totalClassified = 0;
+
+      // Process KB articles
+      var kbGr = new GlideRecord('kb_knowledge');
+      if (kbState) kbGr.addQuery('workflow_state', kbState);
+      kbGr.setLimit(limit);
+      kbGr.orderByDesc('sys_updated_on');
+      kbGr.query();
+      while (kbGr.next()) {
+        var kbSysId = kbGr.getUniqueValue();
+        // Skip if already classified
+        if (alreadyClassified(kbSysId)) continue;
+        totalProcessed++;
+        var kbTitle = kbGr.getValue('short_description') || '';
+        var kbText = (kbGr.getValue('text') || '').replace(/<[^>]*>/g, '').substring(0, 3000);
+        var kbNumber = kbGr.getValue('number') || '';
+        var result = callNASKSkill(SUPPLY_SKILL, 'kb_knowledge', kbTitle, kbText);
+        if (result && result.topic_sys_id && result.topic_sys_id !== 'none') {
+          writeSupplyClassification(runSysId, 'kb_knowledge', kbNumber, kbSysId, kbTitle, result);
+          totalClassified++;
+        }
+      }
+
+      // Process catalog items
+      var catGr = new GlideRecord('sc_cat_item');
+      catGr.addQuery('active', true);
+      catGr.setLimit(limit);
+      catGr.orderByDesc('sys_updated_on');
+      catGr.query();
+      while (catGr.next()) {
+        var catSysId = catGr.getUniqueValue();
+        // Skip if already classified
+        if (alreadyClassified(catSysId)) continue;
+        totalProcessed++;
+        var catName = catGr.getValue('name') || '';
+        var catDesc = ((catGr.getValue('short_description') || '') + ' ' + (catGr.getValue('description') || '')).replace(/<[^>]*>/g, '').substring(0, 3000);
+        var result = callNASKSkill(SUPPLY_SKILL, 'sc_cat_item', catName, catDesc);
+        if (result && result.topic_sys_id && result.topic_sys_id !== 'none') {
+          writeSupplyClassification(runSysId, 'sc_cat_item', catName, catSysId, catName, result);
+          totalClassified++;
+        }
+      }
+
+      // Update run
+      runGr.get(runSysId);
+      runGr.setValue('u_status', 'Complete');
+      runGr.setValue('u_total_incidents_analyzed', totalProcessed);
+      runGr.update();
+
+      data.runComplete = true;
+      data.runSysId = runSysId;
+      data.totalProcessed = totalProcessed;
+      data.totalClassified = totalClassified;
+      // Load results
+      data.supplyData = buildCompanyHierarchy(['kb_knowledge', 'sc_cat_item']);
+      var sf2 = [];
+      for (var si2 = 0; si2 < data.supplyData.companies.length; si2++) {
+        if (data.supplyData.companies[si2].name !== 'Unassigned') sf2.push(data.supplyData.companies[si2]);
+      }
+      data.supplyData.companies = sf2;
+      data.registry = getRegistry(false);
+    }
+
+    // ═══════ RUN DEMAND ANALYSIS (invokes NASK) ═════════
+    if (input.action === 'runDemandAnalysis') {
+      handled = true;
+      var DEMAND_SKILL = '158a0c9a2f0ffa90308dfb3fafa4e352';
+      var incLimit = parseInt(input.limit) || 50;
+      var dateFrom = input.dateFrom || '';
+      var dateTo = input.dateTo || '';
+      var reportName = input.reportName || 'Demand Analysis - ' + new GlideDateTime().getDisplayValue();
+
+      // Build product lookup for matching
+      var prodLookup = {};
+      var plGr = new GlideRecord('u_x_snc_sd_company_product');
+      var plHasActive = plGr.isValidField('u_active');
+      if (plHasActive) plGr.addQuery('u_active', '!=', false);
+      plGr.query();
+      while (plGr.next()) {
+        var plKey = (plGr.getValue('u_company_name') || '').toLowerCase() + '|' + (plGr.getValue('u_name') || '').toLowerCase();
+        prodLookup[plKey] = plGr.getUniqueValue();
+        var plProdOnly = (plGr.getValue('u_name') || '').toLowerCase();
+        if (!prodLookup[plProdOnly]) prodLookup[plProdOnly] = plGr.getUniqueValue();
+      }
+
+      // Create run
+      var dRunGr = new GlideRecord('u_x_snc_sd_analysis_run');
+      dRunGr.initialize();
+      dRunGr.setValue('u_name', reportName);
+      dRunGr.setValue('u_status', 'Processing');
+      dRunGr.setValue('u_run_date', new GlideDateTime());
+      var dRunSysId = dRunGr.insert();
+
+      var dTotal = 0, dClassified = 0, dUnmatched = 0;
+
+      var incGr = new GlideRecord('incident');
+      if (dateFrom) incGr.addQuery('sys_created_on', '>=', dateFrom);
+      if (dateTo) incGr.addQuery('sys_created_on', '<=', dateTo);
+      incGr.setLimit(incLimit);
+      incGr.orderByDesc('sys_created_on');
+      incGr.query();
+      while (incGr.next()) {
+        var incSysId = incGr.getUniqueValue();
+        // Skip if already classified
+        if (alreadyClassified(incSysId)) continue;
+        dTotal++;
+        var incTitle = incGr.getValue('short_description') || '';
+        var incDesc = (incGr.getValue('description') || '').replace(/<[^>]*>/g, '');
+        var incClose = (incGr.getValue('close_notes') || '').replace(/<[^>]*>/g, '');
+        var fullDesc = (incTitle + '\n' + incDesc + '\n' + incClose).substring(0, 3000);
+        var incNumber = incGr.getValue('number') || '';
+
+        var result = callNASKSkill(DEMAND_SKILL, 'incident', incTitle, fullDesc);
+        if (result && result.topic_sys_id && result.topic_sys_id !== 'none') {
+          // Match product
+          var matchedProd = '';
+          if (result.company && result.product) {
+            var mKey = result.company.toLowerCase() + '|' + result.product.toLowerCase();
+            if (prodLookup[mKey]) matchedProd = prodLookup[mKey];
+          }
+          if (!matchedProd && result.product) {
+            var pKey = result.product.toLowerCase();
+            if (prodLookup[pKey]) matchedProd = prodLookup[pKey];
+          }
+
+          var dCls = new GlideRecord('u_x_snc_sd_classification');
+          dCls.initialize();
+          dCls.setValue('u_analysis_run', dRunSysId);
+          dCls.setValue('u_source_type', 'incident');
+          dCls.setValue('u_source_number', incNumber);
+          dCls.setValue('u_source_sys_id', incSysId);
+          dCls.setValue('u_source_description', incTitle);
+          dCls.setValue('u_close_notes', incClose);
+          dCls.setValue('u_service_opportunity', result.topic_sys_id);
+          dCls.setValue('u_confidence_score', result.confidence || 0);
+          dCls.setValue('u_extracted_company', result.company || '');
+          dCls.setValue('u_extracted_product', result.product || '');
+          if (matchedProd) {
+            dCls.setValue('u_product', matchedProd);
+          } else if (result.company || result.product) {
+            dCls.setValue('u_in_other_bucket', true);
+            dUnmatched++;
+          }
+          dCls.insert();
+          dClassified++;
+        }
+      }
+
+      dRunGr.get(dRunSysId);
+      dRunGr.setValue('u_status', 'Complete');
+      dRunGr.setValue('u_total_incidents_analyzed', dTotal);
+      dRunGr.setValue('u_items_in_other_bucket', dUnmatched);
+      dRunGr.update();
+
+      data.runComplete = true;
+      data.totalProcessed = dTotal;
+      data.totalClassified = dClassified;
+      data.totalUnmatched = dUnmatched;
+      // Load unmatched for next step
+      data.unmatched = getUnmatchedGrouped();
     }
 
     if (input.action === 'loadGaps') {
@@ -48,6 +231,34 @@
     if (input.action === 'loadReports') {
       handled = true;
       data.reports = getReports();
+    }
+
+    // ═══════ LOAD RECORDS (for drill-down modal) ════════
+    if (input.action === 'loadRecords') {
+      handled = true;
+      var rTopicSysId = input.topicSysId || '';
+      var rProductSysId = input.productSysId || '';
+      var rSourceType = input.sourceType || '';
+      
+      data.records = [];
+      var recGr = new GlideRecord('u_x_snc_sd_classification');
+      if (rTopicSysId) recGr.addQuery('u_service_opportunity', rTopicSysId);
+      if (rProductSysId) recGr.addQuery('u_product', rProductSysId);
+      if (rSourceType) recGr.addQuery('u_source_type', rSourceType);
+      recGr.setLimit(50);
+      recGr.orderByDesc('u_confidence_score');
+      recGr.query();
+      while (recGr.next()) {
+        data.records.push({
+          number: recGr.getValue('u_source_number') || '',
+          description: recGr.getValue('u_source_description') || '',
+          confidence: parseInt(recGr.getValue('u_confidence_score')) || 0,
+          company: recGr.getValue('u_extracted_company') || '',
+          product: recGr.getValue('u_extracted_product') || '',
+          sourceType: normalizeSourceType(recGr.getValue('u_source_type') || ''),
+          sourceSysId: recGr.getValue('u_source_sys_id') || ''
+        });
+      }
     }
 
     if (input.action === 'loadRegistry') {
@@ -395,6 +606,95 @@
       companies[c].gapCount = compGaps;
     }
     return companies;
+  }
+
+  // ═══════ NASK SKILL HELPERS ════════════════════════
+  function alreadyClassified(sourceSysId) {
+    var check = new GlideRecord('u_x_snc_sd_classification');
+    check.addQuery('u_source_sys_id', sourceSysId);
+    check.setLimit(1);
+    check.query();
+    return check.hasNext();
+  }
+
+  function callNASKSkill(capabilityId, sourceType, title, description) {
+    try {
+      var request = {
+        executionRequests: [{
+          capabilityId: capabilityId,
+          payload: {
+            sourcetype: sourceType,
+            title: title || '',
+            description: description || ''
+          }
+        }]
+      };
+      var result = sn_one_extend.OneExtendUtil.execute(request);
+      if (result && result.capabilities && result.capabilities[capabilityId]) {
+        var responseStr = result.capabilities[capabilityId].response;
+        if (responseStr) return JSON.parse(responseStr);
+      }
+      return null;
+    } catch (e) {
+      gs.warn('SD NASK: Error for "' + title + '": ' + e.message);
+      return null;
+    }
+  }
+
+  function writeSupplyClassification(runId, sourceType, sourceNumber, sourceSysId, sourceDesc, result) {
+    var cls = new GlideRecord('u_x_snc_sd_classification');
+    cls.initialize();
+    cls.setValue('u_analysis_run', runId);
+    cls.setValue('u_source_type', sourceType);
+    cls.setValue('u_source_number', sourceNumber);
+    cls.setValue('u_source_sys_id', sourceSysId);
+    cls.setValue('u_source_description', sourceDesc);
+    cls.setValue('u_service_opportunity', result.topic_sys_id);
+    cls.setValue('u_confidence_score', result.confidence || 0);
+    cls.setValue('u_extracted_company', result.company || '');
+    cls.setValue('u_extracted_product', result.product || '');
+
+    // Find or create product in registry
+    if (result.company || result.product) {
+      var prodSysId = findOrCreateProduct(runId, result.company, result.product);
+      if (prodSysId) cls.setValue('u_product', prodSysId);
+    }
+
+    cls.insert();
+  }
+
+  function findOrCreateProduct(runId, company, product) {
+    if (!product && !company) return '';
+    var productName = product || '';
+    var companyName = company || '';
+
+    // If no specific product, use company name
+    if (!productName) productName = companyName;
+    if (!productName) return '';
+
+    // Check existing
+    var existing = new GlideRecord('u_x_snc_sd_company_product');
+    existing.addQuery('u_name', productName);
+    existing.addQuery('u_company_name', companyName);
+    existing.query();
+    if (existing.next()) {
+      var mentions = parseInt(existing.getValue('u_mention_count')) || 0;
+      existing.setValue('u_mention_count', mentions + 1);
+      existing.update();
+      return existing.getUniqueValue();
+    }
+
+    // Create new
+    var np = new GlideRecord('u_x_snc_sd_company_product');
+    np.initialize();
+    np.setValue('u_name', productName);
+    np.setValue('u_company_name', companyName);
+    np.setValue('u_normalized_name', productName.toLowerCase());
+    np.setValue('u_mention_count', 1);
+    np.setValue('u_analysis_run', runId);
+    np.setValue('u_verified', false);
+    if (np.isValidField('u_active')) np.setValue('u_active', true);
+    return np.insert();
   }
 
 })();
