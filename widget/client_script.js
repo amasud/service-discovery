@@ -65,22 +65,42 @@ function() {
 
   // ─── REGISTRY ACTIONS ───────────────────────────────
   c.reloadRegistry = function() {
-    c.server.get({ action: 'loadRegistry', includeHidden: c.showHidden ? 'true' : 'false' }).then(function(r) { c.data.registry = r.data.registry; });
+    c.data.action = 'loadRegistry';
+    c.data.includeHidden = c.showHidden ? 'true' : 'false';
+    c.server.update().then(function() {
+      // c.data is automatically updated by server.update()
+    });
   };
   c.confirmProduct = function(productSysId) {
-    c.server.get({ action: 'confirmProduct', productSysId: productSysId }).then(function(r) { c.data.registry = r.data.registry; });
+    c.data.action = 'confirmProduct';
+    c.data.productSysId = productSysId;
+    c.server.update().then(function() {
+      // registry auto-updated in c.data
+    });
   };
   c.confirmAllForCompany = function(companyName) {
-    c.server.get({ action: 'confirmAllForCompany', companyName: companyName }).then(function(r) { c.data.registry = r.data.registry; });
+    c.data.action = 'confirmAllForCompany';
+    c.data.companyName = companyName;
+    c.server.update().then(function() {
+      // registry auto-updated in c.data
+    });
   };
   c.hideProduct = function(productSysId) {
-    c.server.get({ action: 'hideProduct', productSysId: productSysId }).then(function(r) { c.data.registry = r.data.registry; });
+    c.data.action = 'hideProduct';
+    c.data.productSysId = productSysId;
+    c.server.update().then(function() {
+      // registry auto-updated in c.data
+    });
   };
   c.unhideProduct = function(productSysId) {
-    c.server.get({ action: 'unhideProduct', productSysId: productSysId }).then(function(r) { c.data.registry = r.data.registry; });
+    c.data.action = 'unhideProduct';
+    c.data.productSysId = productSysId;
+    c.server.update().then(function() {
+      // registry auto-updated in c.data
+    });
   };
   c.toggleShowHidden = function() {
-    c.showHidden = !c.showHidden;
+    // ng-model already updated c.showHidden, just reload
     c.reloadRegistry();
   };
 
