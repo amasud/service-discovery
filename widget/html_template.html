@@ -63,15 +63,16 @@
             <span class="sd-reg-product-name">{{p.displayName || p.name}}</span>
             <span class="sd-reg-product-mentions">{{p.mentions}} mentions</span>
           </div>
-          <div class="sd-reg-product-actions">
-            <!-- Not verified: show Confirm button -->
-            <button class="sd-btn-sm sd-btn-confirm" ng-if="!p.verified &amp;&amp; !p.hidden" ng-click="c.confirmProduct(p.sys_id)">Confirm</button>
-            <!-- Verified: show confirmed label -->
+          <div class="sd-reg-product-actions" ng-if="!p.hidden">
+            <!-- Not confirmed: show Confirm -->
+            <button class="sd-btn-sm sd-btn-confirm" ng-if="!p.verified" ng-click="c.confirmProduct(p.sys_id)">Confirm</button>
+            <!-- Confirmed: show label -->
             <span class="sd-confirmed-label-sm" ng-if="p.verified">&#10003; Confirmed</span>
-            <!-- Active: show Hide -->
-            <button class="sd-btn-sm sd-btn-hide" ng-if="!p.hidden" ng-click="c.hideProduct(p.sys_id)">Hide</button>
-            <!-- Hidden: show Unhide -->
-            <button class="sd-btn-sm sd-btn-unhide" ng-if="p.hidden" ng-click="c.unhideProduct(p.sys_id)">Unhide</button>
+            <!-- Always show Hide when not hidden -->
+            <button class="sd-btn-sm sd-btn-hide" ng-click="c.hideProduct(p.sys_id)">Hide</button>
+          </div>
+          <div class="sd-reg-product-actions" ng-if="p.hidden">
+            <button class="sd-btn-sm sd-btn-unhide" ng-click="c.unhideProduct(p.sys_id)">Unhide</button>
           </div>
         </div>
       </div>
@@ -95,7 +96,7 @@
         <div class="sd-row-l1" ng-click="c.toggle(company.name)"><span class="sd-col-name"><span class="sd-arrow" ng-class="{'open': c.isExpanded(company.name)}">&#9654;</span><strong>{{company.name}}</strong><span class="sd-meta-inline">{{company.products.length}} product{{company.products.length !== 1 ? 's' : ''}}</span></span><span class="sd-col-sm sd-val">{{company.totalKB}}</span><span class="sd-col-sm sd-val">{{company.totalCatalog}}</span></div>
         <div ng-if="c.isExpanded(company.name)"><div ng-repeat="product in company.products">
           <div class="sd-row-l2" ng-click="c.toggle(company.name + product.name)"><span class="sd-col-name"><span class="sd-arrow" ng-class="{'open': c.isExpanded(company.name + product.name)}">&#9654;</span><span class="sd-l2-name">{{product.name}}</span><span class="sd-meta-inline">{{product.topics.length}} topic{{product.topics.length !== 1 ? 's' : ''}}</span></span><span class="sd-col-sm sd-val">{{product.totalKB}}</span><span class="sd-col-sm sd-val">{{product.totalCatalog}}</span></div>
-          <div ng-if="c.isExpanded(company.name + product.name)"><div class="sd-row-l3" ng-repeat="topic in product.topics"><span class="sd-col-name"><span class="sd-l3-name">{{topic.name}}</span><span class="sd-l3-parent">{{topic.parent}}</span></span><span class="sd-col-sm sd-val" ng-class="{'text-green': topic.kb > 0}">{{topic.kb}}</span><span class="sd-col-sm sd-val" ng-class="{'text-green': topic.catalog > 0}">{{topic.catalog}}</span></div></div>
+          <div ng-if="c.isExpanded(company.name + product.name)"><div class="sd-row-l3" ng-repeat="topic in product.topics"><span class="sd-col-name"><span class="sd-l3-name">{{topic.name}}</span><span class="sd-l3-parent">{{topic.parent}}</span></span><span class="sd-col-sm sd-val sd-clickable" ng-class="{'text-green': topic.kb > 0}" ng-click="topic.kb > 0 &amp;&amp; c.openRecordsModal(topic, 'kb_knowledge'); $event.stopPropagation()">{{topic.kb}}</span><span class="sd-col-sm sd-val sd-clickable" ng-class="{'text-green': topic.catalog > 0}" ng-click="topic.catalog > 0 &amp;&amp; c.openRecordsModal(topic, 'sc_cat_item'); $event.stopPropagation()">{{topic.catalog}}</span></div></div>
         </div></div>
       </div>
       <div class="sd-empty" ng-if="!c.data.supplyData.companies.length">No supply data found.</div>
@@ -122,7 +123,7 @@
         <div class="sd-reg-header"><div class="sd-reg-left"><div class="sd-reg-status">?</div><div class="sd-reg-company">{{co.name}}</div><span class="sd-reg-review-badge">New</span></div></div>
         <div class="sd-reg-product-list"><div class="sd-reg-product-row" ng-repeat="p in co.products">
           <div class="sd-reg-product-left"><span class="sd-reg-product-status">&mdash;</span><span class="sd-reg-product-name">{{p.name}}</span><span class="sd-reg-product-mentions">{{p.count}} incident{{p.count !== 1 ? 's' : ''}}</span></div>
-          <div class="sd-reg-product-actions"><button class="sd-btn-sm sd-btn-confirm">Add to registry</button><button class="sd-btn-sm sd-btn-hide">Ignore</button></div>
+          <div class="sd-reg-product-actions"><button class="sd-btn-sm sd-btn-confirm" ng-click="c.addProductFromUnmatched(co.name, p.name)">Add to registry</button><button class="sd-btn-sm sd-btn-hide">Ignore</button></div>
         </div></div>
       </div>
     </div>
@@ -133,6 +134,7 @@
   <!-- STEP 6: ANALYZE RESULTS -->
   <div ng-if="c.view === 'gaps'" class="sd-page"><div class="sd-teal-bar"></div><div class="sd-page-body">
     <button class="sd-back-btn" ng-click="c.setView('home')">&larr; Home</button>
+    <button class="sd-back-btn" style="margin-left: 16px;" ng-click="c.goReviewUnmatched()">&larr; Back to Step 5</button>
     <h1 class="sd-page-title">Analyze results</h1><p class="sd-page-desc">Step 6 of 6 &mdash; supply vs demand: where incident demand exists but content supply doesn't.</p>
     <div class="sd-steps"><div class="sd-step done">1. Supply</div><div class="sd-step done">2. Registry</div><div class="sd-step done">3. Supply results</div><div class="sd-step done">4. Demand</div><div class="sd-step done">5. New products</div><div class="sd-step active">6. Analyze</div></div>
     <div class="sd-card" ng-if="c.data.gapData" ng-init="gs = c.getGapStats()"><h3 class="sd-card-heading">Gap summary</h3><p class="sd-brief-text">Across <strong>{{gs.topics}} active topics</strong> with <strong>{{gs.incidents}} incidents</strong>, <strong class="text-green">{{gs.covered}} are covered</strong> and <strong class="text-red">{{gs.gaps}} have gaps</strong>. Coverage: <strong ng-class="{'text-green': gs.pct >= 50, 'text-red': gs.pct < 50}">{{gs.pct}}%</strong>.</p></div>
@@ -143,7 +145,7 @@
         <div class="sd-row-l1" ng-click="c.toggle(company.name)"><span class="sd-col-name"><span class="sd-arrow" ng-class="{'open': c.isExpanded(company.name)}">&#9654;</span><strong>{{company.name}}</strong><span class="sd-gap-badge" ng-if="company.gapCount > 0">{{company.gapCount}} gap{{company.gapCount !== 1 ? 's' : ''}}</span></span><span class="sd-col-sm sd-val">{{company.totalIncidents}}</span><span class="sd-col-xs sd-val">{{company.totalKB}}</span><span class="sd-col-xs sd-val">{{company.totalCatalog}}</span><span class="sd-col-xs"></span><span class="sd-col-md"></span></div>
         <div ng-if="c.isExpanded(company.name)"><div ng-repeat="product in company.products">
           <div class="sd-row-l2" ng-click="c.toggle(company.name + product.name)"><span class="sd-col-name"><span class="sd-arrow" ng-class="{'open': c.isExpanded(company.name + product.name)}">&#9654;</span><span class="sd-l2-name">{{product.name}}</span><span class="sd-gap-badge" ng-if="product.gapCount > 0">{{product.gapCount}}</span></span><span class="sd-col-sm sd-val">{{product.totalIncidents}}</span><span class="sd-col-xs sd-val">{{product.totalKB}}</span><span class="sd-col-xs sd-val">{{product.totalCatalog}}</span><span class="sd-col-xs"></span><span class="sd-col-md"></span></div>
-          <div ng-if="c.isExpanded(company.name + product.name)"><div class="sd-row-l3" ng-repeat="topic in product.topics" ng-if="topic.incidents > 0"><span class="sd-col-name"><span class="sd-l3-name">{{topic.name}}</span><span class="sd-l3-parent">{{topic.parent}}</span></span><span class="sd-col-sm sd-val">{{topic.incidents}}</span><span class="sd-col-xs sd-val" ng-class="{'text-green': topic.kb > 0, 'text-red': topic.kb === 0}">{{topic.kb}}</span><span class="sd-col-xs sd-val" ng-class="{'text-green': topic.catalog > 0, 'text-red': topic.catalog === 0}">{{topic.catalog}}</span><span class="sd-col-xs sd-rule">{{topic.rule}}</span><span class="sd-col-md"><span class="sd-status-covered" ng-if="topic.covered">Covered &#10003;</span><a class="sd-status-gap" ng-if="!topic.covered" ng-click="c.openCoverageModal(topic); $event.stopPropagation()">View gap &rarr;</a></span></div></div>
+          <div ng-if="c.isExpanded(company.name + product.name)"><div class="sd-row-l3" ng-repeat="topic in product.topics" ng-if="topic.incidents > 0"><span class="sd-col-name"><span class="sd-l3-name">{{topic.name}}</span><span class="sd-l3-parent">{{topic.parent}}</span></span><span class="sd-col-sm sd-val sd-clickable" ng-click="topic.incidents > 0 &amp;&amp; c.openRecordsModal(topic, 'incident'); $event.stopPropagation()">{{topic.incidents}}</span><span class="sd-col-xs sd-val sd-clickable" ng-class="{'text-green': topic.kb > 0, 'text-red': topic.kb === 0}" ng-click="topic.kb > 0 &amp;&amp; c.openRecordsModal(topic, 'kb_knowledge'); $event.stopPropagation()">{{topic.kb}}</span><span class="sd-col-xs sd-val sd-clickable" ng-class="{'text-green': topic.catalog > 0, 'text-red': topic.catalog === 0}" ng-click="topic.catalog > 0 &amp;&amp; c.openRecordsModal(topic, 'sc_cat_item'); $event.stopPropagation()">{{topic.catalog}}</span><span class="sd-col-xs sd-rule">{{topic.rule}}</span><span class="sd-col-md"><span class="sd-status-covered" ng-if="topic.covered">Covered &#10003;</span><a class="sd-status-gap" ng-if="!topic.covered" ng-click="c.openCoverageModal(topic); $event.stopPropagation()">View gap &rarr;</a></span></div></div>
         </div></div>
       </div>
       <div class="sd-empty" ng-if="!c.data.gapData.companies.length">No data. Run supply and demand analysis first.</div>
@@ -156,6 +158,30 @@
     <h1 class="sd-page-title">Existing reports</h1><p class="sd-page-desc">Select a report to view results.</p>
     <div class="sd-card sd-report-card" ng-repeat="report in c.data.reports" ng-click="c.openReport(report)"><div class="sd-report-main"><div><div class="sd-report-name">{{report.name}}</div><div class="sd-report-meta">{{report.date}} &middot; {{report.totalAnalyzed}} records</div></div><div class="sd-report-right"><span class="sd-report-status" ng-class="{'complete': report.status === 'Complete'}">{{report.status}}</span><span class="sd-report-arrow">&rarr;</span></div></div></div>
     <div class="sd-empty" ng-if="c.data.reports.length === 0">No reports yet. <a class="sd-link-blue" ng-click="c.goNewReport()">Create your first report &rarr;</a></div>
+  </div></div>
+
+  <!-- RECORDS DRILL-DOWN MODAL -->
+  <div class="sd-modal-overlay" ng-if="c.recordsModal" ng-click="c.closeRecordsModal()"><div class="sd-modal" ng-click="$event.stopPropagation()">
+    <div class="sd-modal-header">
+      <span class="sd-modal-label">{{c.recordsModal.label}}</span>
+      <h2 class="sd-modal-title">{{c.recordsModal.topic.name}}</h2>
+      <div class="sd-modal-meta">{{c.recordsModal.topic.parent}} &middot; {{c.recordsModal.records.length}} records</div>
+      <button class="sd-modal-close" ng-click="c.closeRecordsModal()">&times;</button>
+    </div>
+    <div class="sd-modal-body">
+      <div ng-if="c.recordsModal.loading" class="sd-loading">Loading records...</div>
+      <table class="sd-records-table" ng-if="!c.recordsModal.loading &amp;&amp; c.recordsModal.records.length > 0">
+        <thead><tr><th>Number</th><th>Description</th><th>Company</th><th>Product</th><th>Confidence</th></tr></thead>
+        <tbody><tr ng-repeat="rec in c.recordsModal.records">
+          <td class="sd-rec-number">{{rec.number}}</td>
+          <td class="sd-rec-desc">{{rec.description}}</td>
+          <td class="sd-rec-meta">{{rec.company}}</td>
+          <td class="sd-rec-meta">{{rec.product}}</td>
+          <td class="sd-rec-conf">{{rec.confidence}}%</td>
+        </tr></tbody>
+      </table>
+      <div class="sd-coverage-none" ng-if="!c.recordsModal.loading &amp;&amp; c.recordsModal.records.length === 0">No records found.</div>
+    </div>
   </div></div>
 
   <!-- COVERAGE MODAL -->
