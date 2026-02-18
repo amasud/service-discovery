@@ -165,6 +165,19 @@ $white: #FFFFFF;
 /* Clickable counts */
 .sd-clickable { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; &:hover { opacity: 0.7; } }
 
+/* Section headings */
+.sd-section-heading { font-size: 1.1rem; font-weight: 700; color: $txt-dk; margin: 24px 0 6px; }
+.sd-section-desc { font-size: 0.85rem; color: $txt; margin: 0 0 16px; }
+
+/* No-product cards */
+.sd-no-product-card { padding: 16px 20px; margin-bottom: 12px; }
+.sd-no-product-header { display: flex; justify-content: space-between; align-items: center; }
+.sd-no-product-topic { font-size: 0.95rem; font-weight: 700; color: $txt-dk; }
+.sd-no-product-parent { font-size: 0.8rem; color: $txt; margin-top: 2px; }
+.sd-no-product-count { font-size: 0.9rem; font-weight: 600; color: $navy; white-space: nowrap; }
+.sd-no-product-samples { margin-top: 12px; border-top: 1px solid $lt; padding-top: 10px; }
+.sd-no-product-sample { padding: 4px 0; font-size: 0.85rem; color: $navy-lt; display: flex; gap: 10px; }
+
 /* Records table */
 .sd-records-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .sd-records-table th { text-align: left; font-weight: 700; color: $navy-lt; padding: 8px 10px; border-bottom: 2px solid $border; font-size: 0.8rem; }
