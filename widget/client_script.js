@@ -26,12 +26,27 @@ function() {
 
   // ─── SUPPLY / DEMAND ─────────────────────────────────
   c.runSupplyAnalysis = function() {
-    c.running = true; c.progress = 10; c.runPhase = 'Running supply analysis...';
-    c.server.get({ action: 'loadSupplyResults' }).then(function(r) { c.data.supplyData = r.data.supplyData; c.running = false; c.goReviewRegistry(); });
+    c.running = true; c.progress = 10; c.runPhase = 'Classifying KB articles and catalog items...';
+    c.data.action = 'runSupplyAnalysis';
+    c.data.reportName = c.reportName || '';
+    c.data.kbState = c.supplyFilters.kbState || 'published';
+    c.data.limit = '10'; // Start small for testing
+    c.server.update().then(function() {
+      c.running = false;
+      c.goReviewRegistry();
+    });
   };
   c.runDemandAnalysis = function() {
-    c.running = true; c.progress = 10; c.runPhase = 'Running demand analysis...';
-    c.server.get({ action: 'loadGaps' }).then(function(r) { c.data.gapData = r.data.gapData; c.running = false; c.goReviewUnmatched(); });
+    c.running = true; c.progress = 10; c.runPhase = 'Classifying incidents...';
+    c.data.action = 'runDemandAnalysis';
+    c.data.reportName = c.reportName || '';
+    c.data.dateFrom = c.demandFilters.dateFrom || '';
+    c.data.dateTo = c.demandFilters.dateTo || '';
+    c.data.limit = c.demandFilters.limit || '50';
+    c.server.update().then(function() {
+      c.running = false;
+      c.setView('review-unmatched');
+    });
   };
   c.openReport = function(report) { c.data.currentReport = report; c.goGaps(); };
 
@@ -46,6 +61,23 @@ function() {
     return false;
   };
   c.matchesRegistrySearch = c.matchesSearch;
+
+  // ─── RECORDS DRILL-DOWN MODAL ─────────────────────────
+  c.recordsModal = null;
+  c.openRecordsModal = function(topic, sourceType) {
+    var label = sourceType === 'kb_knowledge' ? 'KB articles' : sourceType === 'sc_cat_item' ? 'Catalog items' : 'Incidents';
+    c.recordsModal = { topic: topic, sourceType: sourceType, label: label, records: [], loading: true };
+    c.server.get({
+      action: 'loadRecords',
+      topicSysId: topic.sys_id,
+      productSysId: topic.product_sys_id,
+      sourceType: sourceType
+    }).then(function(r) {
+      c.recordsModal.records = r.data.records || [];
+      c.recordsModal.loading = false;
+    });
+  };
+  c.closeRecordsModal = function() { c.recordsModal = null; };
 
   // ─── MODAL ───────────────────────────────────────────
   c.openCoverageModal = function(topic) { c.modal = { topic: topic, rule: topic.rule || 'either' }; };
@@ -110,7 +142,30 @@ function() {
   c.toggleAddCompany = function() { c.showAddCompany = !c.showAddCompany; c.newCompanyName = ''; c.newProductName = ''; };
   c.addProduct = function() {
     if (!c.newCompanyName || !c.newProductName) return;
-    c.server.get({ action: 'addProduct', companyName: c.newCompanyName, productName: c.newProductName }).then(function(r) { c.showAddCompany = false; c.data.registry = r.data.registry; });
+    c.data.action = 'addProduct';
+    c.data.companyName = c.newCompanyName;
+    c.data.productName = c.newProductName;
+    c.server.update().then(function() { c.showAddCompany = false; });
+  };
+  c.addProductFromUnmatched = function(companyName, productName) {
+    c.data.action = 'addProduct';
+    c.data.companyName = companyName;
+    c.data.productName = productName;
+    c.server.update().then(function() {
+      // Reload unmatched to reflect the change
+      c.server.get({ action: 'loadUnmatched' }).then(function(r) {
+        c.data.unmatched = r.data.unmatched;
+      });
+    });
+  };
+
+  c.addProductFromUnmatched = function(companyName, productName) {
+    c.server.get({ action: 'addProduct', companyName: companyName, productName: productName }).then(function() {
+      // Reload unmatched to reflect the change
+      c.server.get({ action: 'loadUnmatched' }).then(function(r) {
+        c.data.unmatched = r.data.unmatched;
+      });
+    });
   };
 
   // ─── STATS ──────────────────────────────────────────
