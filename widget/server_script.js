@@ -27,10 +27,17 @@
     if (input.action === 'loadSupplyResults') {
       handled = true;
       data.supplyData = buildCompanyHierarchy(['kb_knowledge', 'sc_cat_item']);
-      // Filter out Unassigned
+      // Rename Unassigned, keep visible if has data
       var sf = [];
       for (var si = 0; si < data.supplyData.companies.length; si++) {
-        if (data.supplyData.companies[si].name !== 'Unassigned') sf.push(data.supplyData.companies[si]);
+        var sco = data.supplyData.companies[si];
+        if (sco.name === 'Unassigned') {
+          sco.name = '(No product identified)';
+          for (var sp = 0; sp < sco.products.length; sp++) {
+            if (sco.products[sp].name === 'Unassigned') sco.products[sp].name = '(General)';
+          }
+        }
+        if (sco.totalKB > 0 || sco.totalCatalog > 0) sf.push(sco);
       }
       data.supplyData.companies = sf;
     }
@@ -211,18 +218,28 @@
       data.totalClassified = dClassified;
       data.totalUnmatched = dUnmatched;
       // Load unmatched for next step
-      data.unmatched = getUnmatchedGrouped();
+      var unmatchedData = getUnmatchedGrouped();
+      data.unmatched = unmatchedData.unmatched;
+      data.noProduct = unmatchedData.noProduct;
+      data.unmatchedCount = unmatchedData.unmatchedCount;
+      data.noProductCount = unmatchedData.noProductCount;
     }
 
     if (input.action === 'loadGaps') {
       handled = true;
       data.gapData = buildCompanyHierarchy(['kb_knowledge', 'sc_cat_item', 'incident']);
       data.gapData.companies = computeGaps(data.gapData.companies);
-      // Filter out Unassigned and empty companies
+      // Rename Unassigned to more descriptive label, keep it visible
       var filtered = [];
       for (var i = 0; i < data.gapData.companies.length; i++) {
         var co = data.gapData.companies[i];
-        if (co.name === 'Unassigned') continue;
+        if (co.name === 'Unassigned') {
+          co.name = '(No product identified)';
+          // Rename product too
+          for (var p = 0; p < co.products.length; p++) {
+            if (co.products[p].name === 'Unassigned') co.products[p].name = '(General)';
+          }
+        }
         if (co.totalIncidents > 0 || co.totalKB > 0 || co.totalCatalog > 0) filtered.push(co);
       }
       data.gapData.companies = filtered;
@@ -356,7 +373,11 @@
 
     if (input.action === 'loadUnmatched') {
       handled = true;
-      data.unmatched = getUnmatchedGrouped();
+      var unmatchedData = getUnmatchedGrouped();
+      data.unmatched = unmatchedData.unmatched;
+      data.noProduct = unmatchedData.noProduct;
+      data.unmatchedCount = unmatchedData.unmatchedCount;
+      data.noProductCount = unmatchedData.noProductCount;
     }
   }
 
@@ -430,9 +451,11 @@
   }
 
   function getUnmatchedGrouped() {
+    // Section 1: Incidents where AI found a product not in registry
     var groups = {};
     var gr = new GlideRecord('u_x_snc_sd_classification');
     gr.addQuery('u_in_other_bucket', true);
+    gr.addQuery('u_source_type', 'incident');
     gr.query();
     while (gr.next()) {
       var company = gr.getValue('u_extracted_company') || 'Unknown';
@@ -442,22 +465,75 @@
       groups[key].count++;
     }
 
-    var companyGroups = {};
+    var unmatchedCompanies = {};
     for (var gk in groups) {
       var g = groups[gk];
-      if (!companyGroups[g.company]) companyGroups[g.company] = { name: g.company, products: [] };
-      companyGroups[g.company].products.push({
+      if (!unmatchedCompanies[g.company]) unmatchedCompanies[g.company] = { name: g.company, products: [] };
+      unmatchedCompanies[g.company].products.push({
         name: g.product || '(Unidentified product)',
         count: g.count
       });
     }
 
-    var result = [];
-    for (var ck in companyGroups) result.push(companyGroups[ck]);
-    result.sort(function(a, b) {
+    var unmatchedResult = [];
+    for (var ck in unmatchedCompanies) unmatchedResult.push(unmatchedCompanies[ck]);
+    unmatchedResult.sort(function(a, b) {
       return b.products.reduce(function(s, p) { return s + p.count; }, 0) - a.products.reduce(function(s, p) { return s + p.count; }, 0);
     });
-    return result;
+
+    // Section 2: Incidents with no product at all, grouped by topic
+    var topicLookup = {};
+    var tGr2 = new GlideRecord('u_x_snc_sd_opportunity');
+    tGr2.addQuery('u_active', true);
+    tGr2.addNotNullQuery('u_parent_category');
+    tGr2.query();
+    while (tGr2.next()) {
+      topicLookup[tGr2.getUniqueValue()] = {
+        name: tGr2.getValue('u_name') || '',
+        parent: tGr2.getValue('u_parent_category') || ''
+      };
+    }
+
+    var noProductTopics = {};
+    var npGr = new GlideRecord('u_x_snc_sd_classification');
+    npGr.addQuery('u_source_type', 'incident');
+    npGr.addQuery('u_productISEMPTY');
+    npGr.addQuery('u_in_other_bucket', '!=', true);
+    npGr.addNotNullQuery('u_service_opportunity');
+    npGr.query();
+    while (npGr.next()) {
+      var topicRef = npGr.getValue('u_service_opportunity') || '';
+      var topicInfo = topicLookup[topicRef];
+      if (!topicInfo) continue;
+      
+      if (!noProductTopics[topicRef]) {
+        noProductTopics[topicRef] = {
+          sys_id: topicRef,
+          name: topicInfo.name,
+          parent: topicInfo.parent,
+          count: 0,
+          samples: []
+        };
+      }
+      noProductTopics[topicRef].count++;
+      if (noProductTopics[topicRef].samples.length < 3) {
+        noProductTopics[topicRef].samples.push({
+          number: npGr.getValue('u_source_number') || '',
+          description: npGr.getValue('u_source_description') || ''
+        });
+      }
+    }
+
+    var noProductResult = [];
+    for (var npk in noProductTopics) noProductResult.push(noProductTopics[npk]);
+    noProductResult.sort(function(a, b) { return b.count - a.count; });
+
+    return {
+      unmatched: unmatchedResult,
+      noProduct: noProductResult,
+      unmatchedCount: unmatchedResult.reduce(function(s, c) { return s + c.products.reduce(function(s2, p) { return s2 + p.count; }, 0); }, 0),
+      noProductCount: noProductResult.reduce(function(s, t) { return s + t.count; }, 0)
+    };
   }
 
   function normalizeSourceType(srcType) {
