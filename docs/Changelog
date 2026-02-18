@@ -1,56 +1,56 @@
 # Service Discovery — Changelog
 
+## v6.4 (2026-02-17)
+### AI / Classification
+- Fixed NASK payload format: direct payload (Format B) instead of nested inputValues (Format A)
+- Fixed test values bleeding into classifications — cleared NASK skill test inputs
+- Improved supply prompt: stricter matching, no hallucinated products, honest confidence scoring
+- Added deduplication: skip records already classified (checks u_source_sys_id)
+- Fixed source_type case sensitivity: normalizeSourceType() handles "Incident" vs "incident"
+- Fixed boolean field comparison: getValue('u_verified') returns '1'/'0' not 'true'/'false'
+- NASK skills wired into widget — "Run supply analysis" and "Run demand analysis" buttons invoke real AI
+
+### Taxonomy
+- Added 12 new topics for KB coverage: Spam & phishing, USB issues, Browser settings, etc.
+- Added 10 new topics for catalog item coverage: Laptop request, Server management, etc.
+- Total: 50 topics across 19 categories
+
+### Dashboard (v6 → v6.4)
+- Complete redesign: Company → Product → Topic hierarchy (was Topic → Product)
+- 6-step guided flow: Supply → Registry → Supply Results → Demand → New Products → Analyze
+- Home page: 3 cards (Create new report, View existing reports, View registry)
+- Registry: Confirm/Confirmed states working, Hide/Unhide with soft delete, Show Hidden toggle
+- Supply Results: clickable KB/Catalog counts open records drill-down modal
+- Analyze Results: clickable Incident/KB/Catalog counts, coverage rule modal with save
+- "(No product identified)" replaces "Unassigned" in views
+- Back buttons on all steps
+
+### Data Model
+- New table: u_x_snc_sd_coverage_rule (topic × product → required coverage)
+- New fields: u_extracted_company, u_extracted_product on classification table
+- New field: u_active on company_product table (soft delete for hide/unhide)
+- Gap flags (u_kb_gap, u_catalog_gap) deprecated — gaps computed dynamically
+
 ## v5.1 (2026-02-15)
 ### Widget
-- Redesigned to match ServiceNow Service Portal styling (Source Sans Pro, SN colors)
-- Home: Teal gradient hero, Overview cards, Quick Links, Recent Runs sidebar, GenAI sparkle
-- Dashboard: "Opportunity Brief" header, "Search for a company or product", sentence case headers
-- Dashboard: Gap columns show type + count (KB Articles: 3, Catalog Items: 2) at all levels
-- Dashboard: "View coverage" replaces "View gap", coverage modal split into Covered/Gaps sections
-- Dashboard: Product pills neutral (no green), facet toggle below summary
-- Dashboard: Coverage % rollup fixed (uses topic count, not product combos)
-- Dashboard: Gaps Only mode properly hides categories with zero gap-topics
-- New Run: Date from/to pickers, Assignment Groups, KB/Catalog filters, Run Name required
-- Registry: Run selector dropdown, search box, Add Company button
-- CSS: Larger titles (1.5rem), better spacing (24px padding, 20px margins), readable body text
+- ServiceNow Service Portal styling (Source Sans Pro, SN colors)
+- Sentence case headers, coverage modal split into Covered/Gaps
+- Coverage % rollup fixed, Gaps Only mode fixed
 
 ### AI / Classification
-- Created NASK skill "SDClassifySupply" using AWS Claude (Bedrock)
-- Skill classifies KB articles and catalog items against taxonomy
-- Extracts company and product names from artifact text
-- GetTaxonomy script tool pulls all topics from u_x_snc_sd_opportunity
-- Batch classification script (sd_classify_supply.js) loops through KB + catalog
-- Correct OneExtendUtil payload format: payload.inputValues
-- Correct response parsing: result.capabilities[CAPABILITY_ID].response
+- Created NASK skills: SDClassifySupply, SDClassifyDemand
+- GetTaxonomy script tool, GetRegistry script tool
+- Batch classification scripts for background execution
+- Correct OneExtendUtil response parsing: result.capabilities[CAPABILITY_ID].response
 
 ## v4.2 (2026-02-14)
-### Widget
-- Configure: Added state/priority filters for incidents, KB/Catalog filter sections
-- Configure: startRun navigates to registry on complete
-- Registry: Run context banner, Edit button with inline edit form
-- Dashboard: Summary uses getLiveStats() counting actual topic gap flags
-- Dashboard: Trend column at topic level
-- Dashboard: "Gaps" label when both KB + Catalog gap
-- Dashboard: "Company - Product" on one line
-- Dashboard: Supply modal shows KB and Catalog gaps as separate recommendation cards
+- Configure page with filters, registry with edit, dashboard summary stats
 
 ## v4.1 (2026-02-14)
-### Server Script
-- startRun actually queries incidents with date range, assignment group, category, limit
-- Creates classification records linked to run via u_analysis_run
-- Simple keyword matching for topic + product (Phase 1)
-- Product rows now appear because classifications have u_product set
+- Server script with keyword matching (replaced by NASK in v6.4)
 
 ## v4 (2026-02-14)
-### Widget
-- Run lifecycle: create → classify → complete
-- Run selector dropdown on dashboard
-- Filter grid on configure page
-- Facet toggle (Gaps Only / All)
+- Run lifecycle, run selector, facet toggle
 
 ## v3 (2026-02-13)
-### Widget
 - Initial 4-view structure: Home, Configure, Registry, Dashboard
-- Category → Topic → Product hierarchy
-- Modal for demand/supply details
-- Owner filter with autocomplete suggestions
