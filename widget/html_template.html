@@ -1,7 +1,7 @@
-<!-- HTML TEMPLATE - v6.3: Confirm states, hide/unhide, registry unmatched, analyze results -->
+<!-- HTML TEMPLATE - v6.4: Confirm states, unhide toggle, back buttons -->
 <div class="sd-wrapper">
 
-  <!-- ═══════════ HOME ═══════════════════════════════════ -->
+  <!-- HOME -->
   <div ng-if="c.view === 'home'">
     <div class="sd-hero"><div class="sd-hero-inner"><div class="sd-hero-title-row"><h1 class="sd-hero-title">Service Discovery</h1><svg class="sd-sparkle" width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 2L14.09 8.26L20 9.27L15.55 13.97L16.91 20L12 16.9L7.09 20L8.45 13.97L4 9.27L9.91 8.26L12 2Z" fill="url(#sg)"/><path d="M20 3L21 6L24 7L21 8L20 11L19 8L16 7L19 6L20 3Z" fill="#00C0B5" opacity="0.7"/><defs><linearGradient id="sg" x1="4" y1="2" x2="20" y2="20"><stop stop-color="#00C0B5"/><stop offset="1" stop-color="#00875A"/></linearGradient></defs></svg></div><p class="sd-hero-sub">Find what employees need. See what's covered. Build what's missing.</p></div></div>
     <div class="sd-home-body"><div class="sd-home-cards">
@@ -11,7 +11,7 @@
     </div></div>
   </div>
 
-  <!-- ═══════════ STEP 1: SUPPLY CONFIG ═════════════════ -->
+  <!-- STEP 1: SUPPLY CONFIG -->
   <div ng-if="c.view === 'new-report'" class="sd-page"><div class="sd-teal-bar"></div><div class="sd-page-body sd-narrow">
     <button class="sd-back-btn" ng-click="c.setView('home')">&larr; Home</button>
     <h1 class="sd-page-title">Create new report</h1><p class="sd-page-desc">Step 1 of 6 &mdash; classify your content supply.</p>
@@ -20,39 +20,71 @@
     <div class="sd-card"><h3 class="sd-card-heading">KB articles</h3><div class="sd-filter-row-2col"><div class="sd-field"><label>Knowledge base</label><input type="text" class="sd-input" placeholder="Type to search..."></div><div class="sd-field"><label>Workflow state</label><select class="sd-input sd-select" ng-model="c.supplyFilters.kbState"><option value="published">Published</option><option value="">All</option></select></div></div></div>
     <div class="sd-card"><h3 class="sd-card-heading">Catalog items</h3><div class="sd-field"><label>Catalogs</label><input type="text" class="sd-input" placeholder="Type to search catalogs..."></div></div>
     <button class="sd-btn-primary sd-btn-full" ng-click="c.runSupplyAnalysis()">Run supply analysis</button>
-    <div class="sd-card sd-progress-card" ng-if="c.running"><div class="sd-progress-header"><span>{{c.runPhase}}</span></div><div class="sd-progress-bar"><div class="sd-progress-fill" ng-style="{'width': c.progress + '%'}"></div></div></div>
   </div></div>
 
-  <!-- ═══════════ STEP 2: REVIEW REGISTRY ═══════════════ -->
-  <div ng-if="c.view === 'review-registry'" class="sd-page"><div class="sd-teal-bar"></div><div class="sd-page-body sd-medium">
-    <button class="sd-back-btn" ng-click="c.setView('new-report')">&larr; Back</button>
-    <h1 class="sd-page-title">Review product registry</h1><p class="sd-page-desc">Step 2 of 6 &mdash; confirm or hide companies and products found by AI.</p>
-    <div class="sd-steps"><div class="sd-step done">1. Supply</div><div class="sd-step active">2. Registry</div><div class="sd-step">3. Supply results</div><div class="sd-step">4. Demand</div><div class="sd-step">5. New products</div><div class="sd-step">6. Analyze</div></div>
-    <div class="sd-card sd-search-card"><input type="text" class="sd-input" ng-model="c.search" placeholder="Search company or product..."></div>
+  <!-- STEP 2: REVIEW REGISTRY (shared template for both review-registry and registry views) -->
+  <div ng-if="c.view === 'review-registry' || c.view === 'registry'" class="sd-page"><div class="sd-teal-bar"></div><div class="sd-page-body sd-medium">
+    <button class="sd-back-btn" ng-if="c.view === 'review-registry'" ng-click="c.setView('new-report')">&larr; Back to Step 1</button>
+    <button class="sd-back-btn" ng-if="c.view === 'registry'" ng-click="c.setView('home')">&larr; Home</button>
+    <h1 class="sd-page-title">{{c.view === 'review-registry' ? 'Review product registry' : 'Product registry'}}</h1>
+    <p class="sd-page-desc" ng-if="c.view === 'review-registry'">Step 2 of 6 &mdash; confirm or hide companies and products found by AI.</p>
+    <p class="sd-page-desc" ng-if="c.view === 'registry'">Global registry of companies and products.</p>
+    <div class="sd-steps" ng-if="c.view === 'review-registry'"><div class="sd-step done">1. Supply</div><div class="sd-step active">2. Registry</div><div class="sd-step">3. Supply results</div><div class="sd-step">4. Demand</div><div class="sd-step">5. New products</div><div class="sd-step">6. Analyze</div></div>
 
+    <div class="sd-card sd-search-card sd-search-row">
+      <input type="text" class="sd-input sd-search-input" ng-model="c.search" placeholder="Search company or product...">
+      <label class="sd-toggle-label"><input type="checkbox" ng-model="c.showHidden" ng-change="c.toggleShowHidden()"> Show hidden</label>
+    </div>
+
+    <!-- Registry cards -->
     <div class="sd-reg-card" ng-repeat="co in c.data.registry" ng-if="c.matchesRegistrySearch(co)" ng-class="{'confirmed': co.verified}">
+      <!-- Company header -->
       <div class="sd-reg-header">
-        <div class="sd-reg-left"><div class="sd-reg-status" ng-class="{'done': co.verified}">{{co.verified ? '&#10003;' : '?'}}</div><div class="sd-reg-company">{{co.name}}</div><span class="sd-reg-review-badge" ng-if="!co.verified">Needs review</span><span class="sd-reg-confirmed-badge" ng-if="co.verified">Confirmed</span></div>
-        <div class="sd-reg-actions-co"><button class="sd-btn-sm sd-btn-confirm" ng-if="!co.verified" ng-click="c.confirmAllForCompany(co.name)">Confirm all</button><span class="sd-confirmed-label" ng-if="co.verified">&#10003; Confirmed</span></div>
-      </div>
-      <div class="sd-reg-product-list"><div class="sd-reg-product-row" ng-repeat="p in co.products">
-        <div class="sd-reg-product-left"><span class="sd-reg-product-status" ng-class="{'verified': p.verified}">{{p.verified ? '&#10003;' : '&mdash;'}}</span><span class="sd-reg-product-name">{{p.isGeneral ? '(General)' : p.name}}</span><span class="sd-reg-product-mentions">{{p.mentions}} mentions</span></div>
-        <div class="sd-reg-product-actions">
-          <button class="sd-btn-sm sd-btn-confirm" ng-if="!p.verified" ng-click="c.confirmProduct(p.sys_id)">Confirm</button>
-          <span class="sd-confirmed-label-sm" ng-if="p.verified">&#10003;</span>
-          <button class="sd-btn-sm sd-btn-hide" ng-click="c.hideProduct(p.sys_id)">Hide</button>
+        <div class="sd-reg-left">
+          <div class="sd-reg-status" ng-class="{'done': co.verified}">
+            <span ng-if="co.verified">&#10003;</span><span ng-if="!co.verified">?</span>
+          </div>
+          <div class="sd-reg-company">{{co.name}}</div>
+          <span class="sd-reg-review-badge" ng-if="!co.verified">Needs review</span>
+          <span class="sd-reg-confirmed-badge" ng-if="co.verified">Confirmed</span>
         </div>
-      </div></div>
+        <div class="sd-reg-actions-co">
+          <button class="sd-btn-sm sd-btn-confirm" ng-if="!co.verified" ng-click="c.confirmAllForCompany(co.name)">Confirm all</button>
+          <span class="sd-confirmed-label" ng-if="co.verified">&#10003; All confirmed</span>
+        </div>
+      </div>
+      <!-- Product rows -->
+      <div class="sd-reg-product-list">
+        <div class="sd-reg-product-row" ng-repeat="p in co.products" ng-class="{'hidden-row': p.hidden}">
+          <div class="sd-reg-product-left">
+            <span class="sd-reg-product-status" ng-class="{'verified': p.verified}">
+              <span ng-if="p.verified">&#10003;</span><span ng-if="!p.verified">&mdash;</span>
+            </span>
+            <span class="sd-reg-product-name">{{p.displayName || p.name}}</span>
+            <span class="sd-reg-product-mentions">{{p.mentions}} mentions</span>
+          </div>
+          <div class="sd-reg-product-actions">
+            <!-- Not verified: show Confirm button -->
+            <button class="sd-btn-sm sd-btn-confirm" ng-if="!p.verified &amp;&amp; !p.hidden" ng-click="c.confirmProduct(p.sys_id)">Confirm</button>
+            <!-- Verified: show confirmed label -->
+            <span class="sd-confirmed-label-sm" ng-if="p.verified">&#10003; Confirmed</span>
+            <!-- Active: show Hide -->
+            <button class="sd-btn-sm sd-btn-hide" ng-if="!p.hidden" ng-click="c.hideProduct(p.sys_id)">Hide</button>
+            <!-- Hidden: show Unhide -->
+            <button class="sd-btn-sm sd-btn-unhide" ng-if="p.hidden" ng-click="c.unhideProduct(p.sys_id)">Unhide</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="sd-add-btn" ng-if="!c.showAddCompany" ng-click="c.toggleAddCompany()">+ Add company</div>
     <div class="sd-card" ng-if="c.showAddCompany"><strong>Add a new company and product</strong><div class="sd-filter-row-2col" style="margin-top: 12px;"><div class="sd-field"><label>Company</label><input type="text" class="sd-input" ng-model="c.newCompanyName" placeholder="e.g., Zoom"></div><div class="sd-field"><label>Product</label><input type="text" class="sd-input" ng-model="c.newProductName" placeholder="e.g., Zoom Meetings"></div></div><div class="sd-edit-actions"><button class="sd-btn-primary sd-btn-sm" ng-click="c.addProduct()">Add</button><button class="sd-btn-sm" ng-click="c.toggleAddCompany()">Cancel</button></div></div>
-    <div class="sd-nav-footer"><button class="sd-btn-primary" ng-click="c.goSupplyResults()">Next: View supply results &rarr;</button></div>
+    <div class="sd-nav-footer" ng-if="c.view === 'review-registry'"><button class="sd-btn-primary" ng-click="c.goSupplyResults()">Next: View supply results &rarr;</button></div>
   </div></div>
 
-  <!-- ═══════════ STEP 3: SUPPLY RESULTS ════════════════ -->
+  <!-- STEP 3: SUPPLY RESULTS -->
   <div ng-if="c.view === 'supply-results'" class="sd-page"><div class="sd-teal-bar"></div><div class="sd-page-body">
-    <button class="sd-back-btn" ng-click="c.goReviewRegistry()">&larr; Back</button>
+    <button class="sd-back-btn" ng-click="c.goReviewRegistry()">&larr; Back to Step 2</button>
     <h1 class="sd-page-title">Content supply results</h1><p class="sd-page-desc">Step 3 of 6 &mdash; review classified KB articles and catalog items.</p>
     <div class="sd-steps"><div class="sd-step done">1. Supply</div><div class="sd-step done">2. Registry</div><div class="sd-step active">3. Supply results</div><div class="sd-step">4. Demand</div><div class="sd-step">5. New products</div><div class="sd-step">6. Analyze</div></div>
     <div class="sd-card" ng-if="c.data.supplyData" ng-init="ss = c.getSupplyStats()"><h3 class="sd-card-heading">Supply summary</h3><p class="sd-brief-text">Found <strong>{{ss.kb}} KB articles</strong> and <strong>{{ss.catalog}} catalog items</strong> across <strong>{{ss.products}} products</strong> covering <strong>{{ss.topics}} topics</strong>.</p></div>
@@ -71,28 +103,26 @@
     <div class="sd-nav-footer"><button class="sd-btn-primary" ng-click="c.setView('demand-config')">Next: Run demand analysis &rarr;</button></div>
   </div></div>
 
-  <!-- ═══════════ STEP 4: DEMAND CONFIG ═════════════════ -->
+  <!-- STEP 4: DEMAND CONFIG -->
   <div ng-if="c.view === 'demand-config'" class="sd-page"><div class="sd-teal-bar"></div><div class="sd-page-body sd-narrow">
-    <button class="sd-back-btn" ng-click="c.goSupplyResults()">&larr; Back</button>
+    <button class="sd-back-btn" ng-click="c.goSupplyResults()">&larr; Back to Step 3</button>
     <h1 class="sd-page-title">Incident demand analysis</h1><p class="sd-page-desc">Step 4 of 6 &mdash; classify incidents against your taxonomy and registry.</p>
     <div class="sd-steps"><div class="sd-step done">1. Supply</div><div class="sd-step done">2. Registry</div><div class="sd-step done">3. Supply results</div><div class="sd-step active">4. Demand</div><div class="sd-step">5. New products</div><div class="sd-step">6. Analyze</div></div>
     <div class="sd-card"><h3 class="sd-card-heading">Incident filters</h3><div class="sd-filter-row-2col"><div class="sd-field"><label>Created from</label><input type="date" class="sd-input" ng-model="c.demandFilters.dateFrom"></div><div class="sd-field"><label>Created to</label><input type="date" class="sd-input" ng-model="c.demandFilters.dateTo"></div></div><div class="sd-field"><label>Assignment groups</label><input type="text" class="sd-input" ng-model="c.demandFilters.assignmentGroup" placeholder="Type to search..."></div><div class="sd-field"><label>Record limit</label><select class="sd-input sd-select" ng-model="c.demandFilters.limit"><option value="50">50</option><option value="100">100</option><option value="250">250</option><option value="500">500</option></select></div></div>
     <button class="sd-btn-primary sd-btn-full" ng-click="c.runDemandAnalysis()">Run demand analysis</button>
-    <div class="sd-card sd-progress-card" ng-if="c.running"><div class="sd-progress-header"><span>{{c.runPhase}}</span></div><div class="sd-progress-bar"><div class="sd-progress-fill" ng-style="{'width': c.progress + '%'}"></div></div></div>
   </div></div>
 
-  <!-- ═══════════ STEP 5: REVIEW UNMATCHED ══════════════ -->
+  <!-- STEP 5: REVIEW UNMATCHED -->
   <div ng-if="c.view === 'review-unmatched'" class="sd-page"><div class="sd-teal-bar"></div><div class="sd-page-body sd-medium">
-    <button class="sd-back-btn" ng-click="c.setView('demand-config')">&larr; Back</button>
+    <button class="sd-back-btn" ng-click="c.setView('demand-config')">&larr; Back to Step 4</button>
     <h1 class="sd-page-title">Review new products</h1><p class="sd-page-desc">Step 5 of 6 &mdash; products found in incidents but not in your registry.</p>
     <div class="sd-steps"><div class="sd-step done">1. Supply</div><div class="sd-step done">2. Registry</div><div class="sd-step done">3. Supply results</div><div class="sd-step done">4. Demand</div><div class="sd-step active">5. New products</div><div class="sd-step">6. Analyze</div></div>
-
     <div ng-if="c.data.unmatched &amp;&amp; c.data.unmatched.length > 0">
       <div class="sd-reg-card" ng-repeat="co in c.data.unmatched">
         <div class="sd-reg-header"><div class="sd-reg-left"><div class="sd-reg-status">?</div><div class="sd-reg-company">{{co.name}}</div><span class="sd-reg-review-badge">New</span></div></div>
         <div class="sd-reg-product-list"><div class="sd-reg-product-row" ng-repeat="p in co.products">
           <div class="sd-reg-product-left"><span class="sd-reg-product-status">&mdash;</span><span class="sd-reg-product-name">{{p.name}}</span><span class="sd-reg-product-mentions">{{p.count}} incident{{p.count !== 1 ? 's' : ''}}</span></div>
-          <div class="sd-reg-product-actions"><button class="sd-btn-sm sd-btn-confirm" ng-click="c.addProductFromUnmatched(co.name, p.name)">Add to registry</button><button class="sd-btn-sm sd-btn-hide">Ignore</button></div>
+          <div class="sd-reg-product-actions"><button class="sd-btn-sm sd-btn-confirm">Add to registry</button><button class="sd-btn-sm sd-btn-hide">Ignore</button></div>
         </div></div>
       </div>
     </div>
@@ -100,15 +130,13 @@
     <div class="sd-nav-footer"><button class="sd-btn-primary" ng-click="c.goGaps()">Next: Analyze results &rarr;</button></div>
   </div></div>
 
-  <!-- ═══════════ STEP 6: ANALYZE RESULTS ══════════════ -->
+  <!-- STEP 6: ANALYZE RESULTS -->
   <div ng-if="c.view === 'gaps'" class="sd-page"><div class="sd-teal-bar"></div><div class="sd-page-body">
     <button class="sd-back-btn" ng-click="c.setView('home')">&larr; Home</button>
     <h1 class="sd-page-title">Analyze results</h1><p class="sd-page-desc">Step 6 of 6 &mdash; supply vs demand: where incident demand exists but content supply doesn't.</p>
     <div class="sd-steps"><div class="sd-step done">1. Supply</div><div class="sd-step done">2. Registry</div><div class="sd-step done">3. Supply results</div><div class="sd-step done">4. Demand</div><div class="sd-step done">5. New products</div><div class="sd-step active">6. Analyze</div></div>
-
     <div class="sd-card" ng-if="c.data.gapData" ng-init="gs = c.getGapStats()"><h3 class="sd-card-heading">Gap summary</h3><p class="sd-brief-text">Across <strong>{{gs.topics}} active topics</strong> with <strong>{{gs.incidents}} incidents</strong>, <strong class="text-green">{{gs.covered}} are covered</strong> and <strong class="text-red">{{gs.gaps}} have gaps</strong>. Coverage: <strong ng-class="{'text-green': gs.pct >= 50, 'text-red': gs.pct < 50}">{{gs.pct}}%</strong>.</p></div>
     <div class="sd-card sd-search-card"><input type="text" class="sd-input" ng-model="c.search" placeholder="Search for a company or product..."></div>
-
     <div class="sd-table" ng-if="c.data.gapData">
       <div class="sd-table-header"><span class="sd-col-name">Company / Product / Topic</span><span class="sd-col-sm">Incidents</span><span class="sd-col-xs">KB</span><span class="sd-col-xs">Catalog</span><span class="sd-col-xs">Rule</span><span class="sd-col-md">Status</span></div>
       <div ng-repeat="company in c.data.gapData.companies" ng-if="c.matchesSearch(company)">
@@ -122,7 +150,7 @@
     </div>
   </div></div>
 
-  <!-- ═══════════ EXISTING REPORTS ══════════════════════ -->
+  <!-- EXISTING REPORTS -->
   <div ng-if="c.view === 'reports'" class="sd-page"><div class="sd-teal-bar"></div><div class="sd-page-body">
     <button class="sd-back-btn" ng-click="c.setView('home')">&larr; Home</button>
     <h1 class="sd-page-title">Existing reports</h1><p class="sd-page-desc">Select a report to view results.</p>
@@ -130,20 +158,7 @@
     <div class="sd-empty" ng-if="c.data.reports.length === 0">No reports yet. <a class="sd-link-blue" ng-click="c.goNewReport()">Create your first report &rarr;</a></div>
   </div></div>
 
-  <!-- ═══════════ GLOBAL REGISTRY ══════════════════════ -->
-  <div ng-if="c.view === 'registry'" class="sd-page"><div class="sd-teal-bar"></div><div class="sd-page-body sd-medium">
-    <button class="sd-back-btn" ng-click="c.setView('home')">&larr; Home</button>
-    <h1 class="sd-page-title">Product registry</h1><p class="sd-page-desc">Global registry of companies and products.</p>
-    <div class="sd-card sd-search-card"><input type="text" class="sd-input" ng-model="c.search" placeholder="Search company or product..."></div>
-    <div class="sd-reg-card" ng-repeat="co in c.data.registry" ng-if="c.matchesRegistrySearch(co)" ng-class="{'confirmed': co.verified}">
-      <div class="sd-reg-header"><div class="sd-reg-left"><div class="sd-reg-status" ng-class="{'done': co.verified}">{{co.verified ? '&#10003;' : '?'}}</div><div class="sd-reg-company">{{co.name}}</div><span class="sd-reg-review-badge" ng-if="!co.verified">Needs review</span><span class="sd-reg-confirmed-badge" ng-if="co.verified">Confirmed</span></div><div class="sd-reg-actions-co"><button class="sd-btn-sm sd-btn-confirm" ng-if="!co.verified" ng-click="c.confirmAllForCompany(co.name)">Confirm all</button><span class="sd-confirmed-label" ng-if="co.verified">&#10003; Confirmed</span><button class="sd-btn-sm sd-btn-edit">Edit</button></div></div>
-      <div class="sd-reg-product-list"><div class="sd-reg-product-row" ng-repeat="p in co.products"><div class="sd-reg-product-left"><span class="sd-reg-product-status" ng-class="{'verified': p.verified}">{{p.verified ? '&#10003;' : '&mdash;'}}</span><span class="sd-reg-product-name">{{p.isGeneral ? '(General)' : p.name}}</span><span class="sd-reg-product-mentions">{{p.mentions}} mentions</span></div><div class="sd-reg-product-actions"><button class="sd-btn-sm sd-btn-confirm" ng-if="!p.verified" ng-click="c.confirmProduct(p.sys_id)">Confirm</button><span class="sd-confirmed-label-sm" ng-if="p.verified">&#10003;</span><button class="sd-btn-sm sd-btn-hide" ng-click="c.hideProduct(p.sys_id)">Hide</button></div></div></div>
-    </div>
-    <div class="sd-add-btn" ng-if="!c.showAddCompany" ng-click="c.toggleAddCompany()">+ Add company</div>
-    <div class="sd-card" ng-if="c.showAddCompany"><strong>Add a new company and product</strong><div class="sd-filter-row-2col" style="margin-top: 12px;"><div class="sd-field"><label>Company</label><input type="text" class="sd-input" ng-model="c.newCompanyName" placeholder="e.g., Zoom"></div><div class="sd-field"><label>Product</label><input type="text" class="sd-input" ng-model="c.newProductName" placeholder="e.g., Zoom Meetings"></div></div><div class="sd-edit-actions"><button class="sd-btn-primary sd-btn-sm" ng-click="c.addProduct()">Add</button><button class="sd-btn-sm" ng-click="c.toggleAddCompany()">Cancel</button></div></div>
-  </div></div>
-
-  <!-- ═══════════ COVERAGE MODAL ═══════════════════════ -->
+  <!-- COVERAGE MODAL -->
   <div class="sd-modal-overlay" ng-if="c.modal" ng-click="c.closeModal()"><div class="sd-modal" ng-click="$event.stopPropagation()">
     <div class="sd-modal-header"><span class="sd-modal-label">Coverage details</span><h2 class="sd-modal-title">{{c.modal.topic.name}}</h2><div class="sd-modal-meta">{{c.modal.topic.parent}} &middot; {{c.modal.topic.incidents}} incidents</div><button class="sd-modal-close" ng-click="c.closeModal()">&times;</button></div>
     <div class="sd-modal-body">
