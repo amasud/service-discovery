@@ -1,189 +1,196 @@
-/* SCSS - v6.4: Unhide, hidden rows, search toggle, confirmed labels */
+// CLIENT SCRIPT - v6.4: Fixed confirm, show/hide hidden, unhide
+function() {
+  var c = this;
 
-$navy: #2E3D49;
-$navy-lt: #485A67;
-$green: #00875A;
-$green-lt: #E3FCEF;
-$teal: #00C0B5;
-$red: #DE350B;
-$red-lt: #FFEBE6;
-$orange: #FF991F;
-$orange-lt: #FFF3E0;
-$blue: #0052CC;
-$bg: #F1F2F3;
-$border: #E0E3E6;
-$txt: #6C757D;
-$txt-dk: #393E46;
-$lt: #E8EAED;
-$white: #FFFFFF;
+  c.view = 'home';
+  c.expanded = {};
+  c.modal = null;
+  c.search = '';
+  c.reportName = '';
+  c.running = false;
+  c.progress = 0;
+  c.runPhase = '';
+  c.showHidden = false;
+  c.supplyFilters = { kbState: 'published' };
+  c.demandFilters = { dateFrom: '', dateTo: '', assignmentGroup: '', limit: '50' };
 
-.sd-wrapper { color: $txt-dk; max-width: 1200px; margin: 0 auto; font-family: 'Source Sans Pro', -apple-system, sans-serif; font-size: 15px; line-height: 1.5; }
+  // ─── NAVIGATION ──────────────────────────────────────
+  c.setView = function(view) { c.view = view; c.expanded = {}; c.modal = null; c.search = ''; };
+  c.goNewReport = function() { c.setView('new-report'); };
+  c.goReports = function() { c.server.get({ action: 'loadReports' }).then(function(r) { c.data.reports = r.data.reports; c.setView('reports'); }); };
+  c.goRegistry = function() { c.showHidden = false; c.server.get({ action: 'loadRegistry', includeHidden: 'false' }).then(function(r) { c.data.registry = r.data.registry; c.setView('registry'); }); };
+  c.goReviewRegistry = function() { c.showHidden = false; c.server.get({ action: 'loadRegistry', includeHidden: 'false' }).then(function(r) { c.data.registry = r.data.registry; c.setView('review-registry'); }); };
+  c.goSupplyResults = function() { c.server.get({ action: 'loadSupplyResults' }).then(function(r) { c.data.supplyData = r.data.supplyData; c.setView('supply-results'); }); };
+  c.goReviewUnmatched = function() { c.server.get({ action: 'loadUnmatched' }).then(function(r) { 
+    c.data.unmatched = r.data.unmatched; 
+    c.data.noProduct = r.data.noProduct;
+    c.data.unmatchedCount = r.data.unmatchedCount;
+    c.data.noProductCount = r.data.noProductCount;
+    c.setView('review-unmatched'); 
+  }); };
+  c.goGaps = function() { c.server.get({ action: 'loadGaps' }).then(function(r) { c.data.gapData = r.data.gapData; c.setView('gaps'); }); };
 
-.text-green { color: $green !important; }
-.text-red { color: $red !important; }
-.text-orange { color: $orange !important; }
+  // ─── SUPPLY / DEMAND ─────────────────────────────────
+  c.runSupplyAnalysis = function() {
+    c.running = true; c.progress = 10; c.runPhase = 'Classifying KB articles and catalog items...';
+    c.data.action = 'runSupplyAnalysis';
+    c.data.reportName = c.reportName || '';
+    c.data.kbState = c.supplyFilters.kbState || 'published';
+    c.data.limit = '10'; // Start small for testing
+    c.server.update().then(function() {
+      c.running = false;
+      c.goReviewRegistry();
+    });
+  };
+  c.runDemandAnalysis = function() {
+    c.running = true; c.progress = 10; c.runPhase = 'Classifying incidents...';
+    c.data.action = 'runDemandAnalysis';
+    c.data.reportName = c.reportName || '';
+    c.data.dateFrom = c.demandFilters.dateFrom || '';
+    c.data.dateTo = c.demandFilters.dateTo || '';
+    c.data.limit = c.demandFilters.limit || '50';
+    c.server.update().then(function() {
+      c.running = false;
+      c.setView('review-unmatched');
+    });
+  };
+  c.openReport = function(report) { c.data.currentReport = report; c.goGaps(); };
 
-.sd-card { background: $white; border: 1px solid $border; border-radius: 8px; padding: 24px; margin-bottom: 20px; }
-.sd-card-heading { font-size: 1rem; font-weight: 700; color: $txt-dk; margin: 0 0 12px; display: block; }
-.sd-page-title { font-size: 1.5rem; font-weight: 700; margin: 0 0 6px; color: $txt-dk; }
-.sd-page-desc { font-size: 0.95rem; color: $txt; margin: 0 0 24px; }
-.sd-back-btn { background: none; border: none; color: $blue; font-size: 0.9rem; font-weight: 600; cursor: pointer; padding: 0; margin-bottom: 12px; display: inline-block; }
-.sd-brief-text { font-size: 0.95rem; line-height: 1.7; color: $navy-lt; margin: 0; strong { color: $txt-dk; } }
-.sd-hint { font-size: 0.8rem; color: $txt; margin: 8px 0 0; }
-.sd-link-blue { font-weight: 600; color: $blue; cursor: pointer; }
-.sd-pill { display: inline-flex; padding: 3px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; background: $lt; color: $navy-lt; white-space: nowrap; }
+  // ─── EXPAND/COLLAPSE & SEARCH ────────────────────────
+  c.toggle = function(key) { c.expanded[key] = !c.expanded[key]; };
+  c.isExpanded = function(key) { return c.expanded[key]; };
+  c.matchesSearch = function(company) {
+    if (!c.search || c.search.length < 2) return true;
+    var s = c.search.toLowerCase();
+    if (company.name.toLowerCase().indexOf(s) > -1) return true;
+    for (var i = 0; i < company.products.length; i++) { if (company.products[i].name.toLowerCase().indexOf(s) > -1) return true; }
+    return false;
+  };
+  c.matchesRegistrySearch = c.matchesSearch;
 
-/* Buttons */
-.sd-btn-primary { background: $navy; color: white; border: none; border-radius: 8px; padding: 12px 24px; font-size: 0.95rem; font-weight: 600; cursor: pointer; &:hover { opacity: 0.85; } }
-.sd-btn-sm { background: $lt; border: 1px solid $border; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: 600; color: $navy-lt; cursor: pointer; }
-.sd-btn-full { width: 100%; padding: 14px; }
-.sd-btn-confirm { background: $green-lt; color: $green; border: none; &:hover { background: darken($green-lt, 5%); } }
-.sd-btn-edit { &:hover { background: $border; } }
-.sd-btn-hide { background: none; border: 1px solid $border; color: $txt; font-size: 0.8rem; &:hover { color: $orange; border-color: $orange; } }
-.sd-btn-unhide { background: $blue; color: white; border: none; font-size: 0.8rem; border-radius: 6px; padding: 5px 12px; font-weight: 600; cursor: pointer; &:hover { opacity: 0.85; } }
-.sd-btn-remove { background: none; border: none; color: $red; font-weight: 600; cursor: pointer; font-size: 0.8rem; padding: 5px 8px; }
+  // ─── RECORDS DRILL-DOWN MODAL ─────────────────────────
+  c.recordsModal = null;
+  c.openRecordsModal = function(topic, sourceType) {
+    var label = sourceType === 'kb_knowledge' ? 'KB articles' : sourceType === 'sc_cat_item' ? 'Catalog items' : 'Incidents';
+    c.recordsModal = { topic: topic, sourceType: sourceType, label: label, records: [], loading: true };
+    c.server.get({
+      action: 'loadRecords',
+      topicSysId: topic.sys_id,
+      productSysId: topic.product_sys_id,
+      sourceType: sourceType
+    }).then(function(r) {
+      c.recordsModal.records = r.data.records || [];
+      c.recordsModal.loading = false;
+    });
+  };
+  c.closeRecordsModal = function() { c.recordsModal = null; };
 
-/* Confirmed labels */
-.sd-confirmed-label { font-size: 0.85rem; font-weight: 600; color: $green; white-space: nowrap; }
-.sd-confirmed-label-sm { font-size: 0.8rem; font-weight: 600; color: $green; white-space: nowrap; }
+  // ─── MODAL ───────────────────────────────────────────
+  c.openCoverageModal = function(topic) { c.modal = { topic: topic, rule: topic.rule || 'either' }; };
+  c.closeModal = function() { c.modal = null; };
+  c.saveCoverageRule = function() {
+    if (!c.modal) return;
+    c.server.get({ action: 'saveCoverageRule', topicSysId: c.modal.topic.sys_id, productSysId: c.modal.topic.product_sys_id, rule: c.modal.rule }).then(function() {
+      var t = c.modal.topic; var rule = c.modal.rule; var gaps = [];
+      if (rule === 'kb' && t.kb === 0) gaps.push('KB article');
+      if (rule === 'catalog' && t.catalog === 0) gaps.push('Catalog item');
+      if (rule === 'both') { if (t.kb === 0) gaps.push('KB article'); if (t.catalog === 0) gaps.push('Catalog item'); }
+      if (rule === 'either' && t.kb === 0 && t.catalog === 0) gaps.push('Content');
+      t.covered = (rule === 'none') || gaps.length === 0; t.gaps = gaps; t.rule = rule;
+      c.closeModal();
+    });
+  };
 
-.sd-input { width: 100%; padding: 10px 14px; border: 1px solid $border; border-radius: 6px; font-size: 0.9rem; background: $bg; outline: none; &:focus { border-color: $navy-lt; background: $white; } }
-.sd-select { appearance: auto; cursor: pointer; }
+  // ─── REGISTRY ACTIONS ───────────────────────────────
+  c.reloadRegistry = function() {
+    c.data.action = 'loadRegistry';
+    c.data.includeHidden = c.showHidden ? 'true' : 'false';
+    c.server.update().then(function() {
+      // c.data is automatically updated by server.update()
+    });
+  };
+  c.confirmProduct = function(productSysId) {
+    c.data.action = 'confirmProduct';
+    c.data.productSysId = productSysId;
+    c.server.update().then(function() {
+      // registry auto-updated in c.data
+    });
+  };
+  c.confirmAllForCompany = function(companyName) {
+    c.data.action = 'confirmAllForCompany';
+    c.data.companyName = companyName;
+    c.server.update().then(function() {
+      // registry auto-updated in c.data
+    });
+  };
+  c.hideProduct = function(productSysId) {
+    c.data.action = 'hideProduct';
+    c.data.productSysId = productSysId;
+    c.server.update().then(function() {
+      // registry auto-updated in c.data
+    });
+  };
+  c.unhideProduct = function(productSysId) {
+    c.data.action = 'unhideProduct';
+    c.data.productSysId = productSysId;
+    c.server.update().then(function() {
+      // registry auto-updated in c.data
+    });
+  };
+  c.toggleShowHidden = function() {
+    // ng-model already updated c.showHidden, just reload
+    c.reloadRegistry();
+  };
 
-.sd-teal-bar { background: linear-gradient(90deg, $teal, $green); height: 4px; }
-.sd-page-body { background: $bg; min-height: 100vh; padding: 28px 32px; }
-.sd-narrow { max-width: 700px; margin: 0 auto; }
-.sd-medium { max-width: 800px; margin: 0 auto; }
+  c.showAddCompany = false;
+  c.newCompanyName = '';
+  c.newProductName = '';
+  c.toggleAddCompany = function() { c.showAddCompany = !c.showAddCompany; c.newCompanyName = ''; c.newProductName = ''; };
+  c.addProduct = function() {
+    if (!c.newCompanyName || !c.newProductName) return;
+    c.data.action = 'addProduct';
+    c.data.companyName = c.newCompanyName;
+    c.data.productName = c.newProductName;
+    c.server.update().then(function() { c.showAddCompany = false; });
+  };
+  c.addProductFromUnmatched = function(companyName, productName) {
+    c.data.action = 'addProduct';
+    c.data.companyName = companyName;
+    c.data.productName = productName;
+    c.server.update().then(function() {
+      // Reload unmatched to reflect the change
+      c.server.get({ action: 'loadUnmatched' }).then(function(r) {
+        c.data.unmatched = r.data.unmatched;
+      });
+    });
+  };
 
-.sd-field { margin-bottom: 14px; label { font-size: 0.8rem; font-weight: 600; color: $navy-lt; display: block; margin-bottom: 5px; } }
-.sd-filter-row-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.sd-edit-actions { margin-top: 14px; display: flex; gap: 8px; }
-.sd-search-card { padding: 16px; margin-bottom: 16px; }
-.sd-search-row { display: flex; align-items: center; gap: 16px; }
-.sd-search-input { flex: 1; }
-.sd-toggle-label { font-size: 0.8rem; font-weight: 600; color: $txt; white-space: nowrap; cursor: pointer; display: flex; align-items: center; gap: 6px; input[type="checkbox"] { cursor: pointer; } }
-.sd-nav-footer { margin-top: 20px; display: flex; justify-content: flex-end; }
-.sd-empty { padding: 40px; text-align: center; font-size: 0.95rem; color: $txt; }
+  c.addProductFromUnmatched = function(companyName, productName) {
+    c.server.get({ action: 'addProduct', companyName: companyName, productName: productName }).then(function() {
+      // Reload unmatched to reflect the change
+      c.server.get({ action: 'loadUnmatched' }).then(function(r) {
+        c.data.unmatched = r.data.unmatched;
+      });
+    });
+  };
 
-/* Progress */
-.sd-progress-card { margin-top: 16px; }
-.sd-progress-header { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem; color: $navy; }
-.sd-progress-bar { height: 6px; background: $lt; border-radius: 3px; overflow: hidden; }
-.sd-progress-fill { height: 100%; border-radius: 3px; background: $teal; transition: width 0.3s; }
-
-/* Hero */
-.sd-hero { background: linear-gradient(135deg, $teal, $green); padding: 36px 32px 32px; color: white; }
-.sd-hero-inner { max-width: 1200px; margin: 0 auto; }
-.sd-hero-title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.sd-hero-title { font-size: 1.75rem; font-weight: 700; margin: 0; color: white; }
-.sd-sparkle { display: inline-block; vertical-align: middle; }
-.sd-hero-sub { font-size: 1rem; opacity: 0.85; margin: 0; }
-
-/* Home */
-.sd-home-body { background: $bg; padding: 28px 32px; }
-.sd-home-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.sd-home-card { background: $white; border: 1px solid $border; border-radius: 8px; padding: 40px 24px; text-align: center; cursor: pointer; &:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.08); } }
-.sd-home-card-title { font-size: 1.1rem; font-weight: 700; color: $txt-dk; margin-bottom: 8px; }
-.sd-home-card-desc { font-size: 0.85rem; color: $txt; }
-
-/* Steps */
-.sd-steps { display: flex; gap: 0; margin-bottom: 24px; }
-.sd-step { flex: 1; padding: 8px 6px; text-align: center; font-size: 0.75rem; font-weight: 600; color: $txt; background: $lt; white-space: nowrap; &:first-child { border-radius: 8px 0 0 8px; } &:last-child { border-radius: 0 8px 8px 0; } &.active { background: $navy; color: white; } &.done { background: $green-lt; color: $green; } }
-
-/* Table */
-.sd-table { background: $white; border: 1px solid $border; border-radius: 8px; overflow: hidden; }
-.sd-table-header { display: flex; align-items: center; padding: 12px 16px; background: $lt; font-size: 0.8rem; font-weight: 700; color: $navy-lt; border-bottom: 1px solid $border; }
-.sd-col-name { flex: 1; min-width: 0; }
-.sd-col-sm { width: 80px; text-align: center; flex-shrink: 0; }
-.sd-col-xs { width: 60px; text-align: center; flex-shrink: 0; }
-.sd-col-md { width: 120px; text-align: center; flex-shrink: 0; }
-.sd-val { font-size: 0.9rem; font-weight: 600; }
-
-.sd-row-l1 { display: flex; align-items: center; padding: 14px 16px; border-bottom: 1px solid $lt; cursor: pointer; &:hover { background: rgba(0,0,0,0.015); } strong { font-size: 1rem; color: $txt-dk; } }
-.sd-row-l2 { display: flex; align-items: center; padding: 12px 16px 12px 44px; border-bottom: 1px solid $border; cursor: pointer; background: #F8F9FA; }
-.sd-row-l3 { display: flex; align-items: center; padding: 10px 16px 10px 76px; border-bottom: 1px solid $lt; background: #F1F2F3; }
-.sd-l2-name { font-size: 0.95rem; font-weight: 600; color: $txt-dk; }
-.sd-l3-name { font-size: 0.88rem; font-weight: 600; color: $txt-dk; display: block; }
-.sd-l3-parent { font-size: 0.75rem; color: $txt; display: block; margin-top: 2px; }
-.sd-meta-inline { font-size: 0.8rem; color: $txt; margin-left: 12px; }
-.sd-arrow { display: inline-block; font-size: 0.55rem; margin-right: 10px; transition: transform 0.15s; color: $txt; &.open { transform: rotate(90deg); } }
-
-/* Gap badges */
-.sd-gap-badge { font-size: 0.75rem; background: $red-lt; color: $red; padding: 2px 10px; border-radius: 99px; margin-left: 10px; font-weight: 600; }
-.sd-rule { font-size: 0.75rem; color: $txt; }
-.sd-status-covered { font-size: 0.85rem; font-weight: 600; color: $green; }
-.sd-status-gap { font-size: 0.85rem; font-weight: 600; color: $red; cursor: pointer; text-decoration: underline; }
-
-/* Registry */
-.sd-reg-card { background: $white; border: 1px solid $border; border-radius: 8px; margin-bottom: 12px; overflow: hidden; &.confirmed { border-left: 4px solid $green; } }
-.sd-reg-header { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: $white; border-bottom: 1px solid $lt; }
-.sd-reg-left { display: flex; align-items: center; gap: 12px; }
-.sd-reg-status { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; background: $orange-lt; color: $orange; &.done { background: $green-lt; color: $green; } }
-.sd-reg-company { font-size: 1rem; font-weight: 700; color: $txt-dk; }
-.sd-reg-review-badge { font-size: 0.7rem; font-weight: 600; padding: 2px 10px; border-radius: 99px; background: $orange-lt; color: $orange; margin-left: 8px; }
-.sd-reg-confirmed-badge { font-size: 0.7rem; font-weight: 600; padding: 2px 10px; border-radius: 99px; background: $green-lt; color: $green; margin-left: 8px; }
-.sd-reg-actions-co { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.sd-reg-product-list { padding: 0; }
-.sd-reg-product-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px 10px 64px; border-bottom: 1px solid $lt; &:last-child { border-bottom: none; } &.hidden-row { opacity: 0.5; background: #FAFAFA; } }
-.sd-reg-product-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-.sd-reg-product-status { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; flex-shrink: 0; background: $lt; color: $txt; border: 1px solid $border; &.verified { background: $green-lt; color: $green; border-color: $green; } }
-.sd-reg-product-name { font-size: 0.9rem; font-weight: 600; color: $txt-dk; }
-.sd-reg-product-mentions { font-size: 0.75rem; color: $txt; margin-left: auto; margin-right: 12px; white-space: nowrap; }
-.sd-reg-product-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.sd-add-btn { border: 2px dashed $border; border-radius: 8px; padding: 16px; text-align: center; font-size: 0.9rem; font-weight: 600; color: $txt; cursor: pointer; margin-bottom: 20px; }
-
-/* Reports */
-.sd-report-card { cursor: pointer; padding: 20px; &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); } }
-.sd-report-main { display: flex; justify-content: space-between; align-items: center; }
-.sd-report-name { font-size: 1rem; font-weight: 700; color: $txt-dk; }
-.sd-report-meta { font-size: 0.85rem; color: $txt; margin-top: 4px; }
-.sd-report-right { display: flex; align-items: center; gap: 12px; }
-.sd-report-status { font-size: 0.8rem; font-weight: 600; padding: 4px 12px; border-radius: 99px; background: $orange-lt; color: $orange; &.complete { background: $green-lt; color: $green; } }
-.sd-report-arrow { color: $blue; font-weight: 600; }
-
-/* Modal */
-.sd-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); z-index: 1000; display: flex; align-items: center; justify-content: center; }
-.sd-modal { background: $white; border-radius: 12px; max-width: 600px; width: 92%; max-height: 82vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
-.sd-modal-header { padding: 24px 28px 14px; position: relative; }
-.sd-modal-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: $txt; font-weight: 600; }
-.sd-modal-title { font-size: 1.15rem; font-weight: 700; color: $txt-dk; margin: 6px 0 0; }
-.sd-modal-meta { font-size: 0.85rem; color: $txt; margin-top: 4px; }
-.sd-modal-close { position: absolute; top: 20px; right: 24px; background: none; border: none; font-size: 1.3rem; cursor: pointer; color: $txt; }
-.sd-modal-body { padding: 0 28px 24px; }
-
-.sd-coverage-section { margin-bottom: 16px; }
-.sd-coverage-section-title { font-size: 0.85rem; font-weight: 700; color: $txt-dk; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid $lt; }
-.sd-coverage-none { font-size: 0.85rem; color: $txt; padding: 8px 0; }
-.sd-gap-card { padding: 12px; border-radius: 8px; font-size: 0.85rem; color: $navy-lt; margin-bottom: 8px; }
-.sd-gap-card-kb { background: $red-lt; }
-.sd-gap-card-cat { background: $orange-lt; }
-.sd-gap-card-green { background: $green-lt; }
-
-.sd-rule-buttons { display: flex; gap: 8px; }
-.sd-rule-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid $border; background: $white; color: $txt; font-size: 0.8rem; font-weight: 600; cursor: pointer; &.active { background: $navy; color: white; border-color: $navy; } }
-
-/* Clickable counts */
-.sd-clickable { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; &:hover { opacity: 0.7; } }
-
-/* Section headings */
-.sd-section-heading { font-size: 1.1rem; font-weight: 700; color: $txt-dk; margin: 24px 0 6px; }
-.sd-section-desc { font-size: 0.85rem; color: $txt; margin: 0 0 16px; }
-
-/* No-product cards */
-.sd-no-product-card { padding: 16px 20px; margin-bottom: 12px; }
-.sd-no-product-header { display: flex; justify-content: space-between; align-items: center; }
-.sd-no-product-topic { font-size: 0.95rem; font-weight: 700; color: $txt-dk; }
-.sd-no-product-parent { font-size: 0.8rem; color: $txt; margin-top: 2px; }
-.sd-no-product-count { font-size: 0.9rem; font-weight: 600; color: $navy; white-space: nowrap; }
-.sd-no-product-samples { margin-top: 12px; border-top: 1px solid $lt; padding-top: 10px; }
-.sd-no-product-sample { padding: 4px 0; font-size: 0.85rem; color: $navy-lt; display: flex; gap: 10px; }
-
-/* Records table */
-.sd-records-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-.sd-records-table th { text-align: left; font-weight: 700; color: $navy-lt; padding: 8px 10px; border-bottom: 2px solid $border; font-size: 0.8rem; }
-.sd-records-table td { padding: 8px 10px; border-bottom: 1px solid $lt; vertical-align: top; }
-.sd-rec-number { font-weight: 600; color: $blue; white-space: nowrap; font-size: 0.8rem; }
-.sd-rec-desc { color: $txt-dk; max-width: 300px; }
-.sd-rec-meta { color: $txt; font-size: 0.8rem; }
-.sd-rec-conf { font-weight: 600; color: $navy; white-space: nowrap; }
-.sd-loading { text-align: center; padding: 20px; color: $txt; font-size: 0.9rem; }
+  // ─── STATS ──────────────────────────────────────────
+  c.getGapStats = function() {
+    if (!c.data.gapData || !c.data.gapData.companies) return { topics: 0, gaps: 0, covered: 0, incidents: 0, pct: 0 };
+    var topics = 0, gaps = 0, covered = 0, incidents = 0;
+    for (var ci = 0; ci < c.data.gapData.companies.length; ci++) for (var pi = 0; pi < c.data.gapData.companies[ci].products.length; pi++) for (var ti = 0; ti < c.data.gapData.companies[ci].products[pi].topics.length; ti++) {
+      var t = c.data.gapData.companies[ci].products[pi].topics[ti];
+      if (t.incidents > 0) { topics++; incidents += t.incidents; if (t.covered) covered++; else gaps++; }
+    }
+    return { topics: topics, gaps: gaps, covered: covered, incidents: incidents, pct: topics > 0 ? Math.round((covered / topics) * 100) : 0 };
+  };
+  c.getSupplyStats = function() {
+    if (!c.data.supplyData || !c.data.supplyData.companies) return { kb: 0, catalog: 0, products: 0, topics: 0 };
+    var kb = 0, catalog = 0, products = 0, topics = 0;
+    for (var ci = 0; ci < c.data.supplyData.companies.length; ci++) for (var pi = 0; pi < c.data.supplyData.companies[ci].products.length; pi++) {
+      products++;
+      for (var ti = 0; ti < c.data.supplyData.companies[ci].products[pi].topics.length; ti++) { topics++; kb += c.data.supplyData.companies[ci].products[pi].topics[ti].kb; catalog += c.data.supplyData.companies[ci].products[pi].topics[ti].catalog; }
+    }
+    return { kb: kb, catalog: catalog, products: products, topics: topics };
+  };
+}
