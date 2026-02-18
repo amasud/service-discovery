@@ -161,3 +161,16 @@ $white: #FFFFFF;
 
 .sd-rule-buttons { display: flex; gap: 8px; }
 .sd-rule-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid $border; background: $white; color: $txt; font-size: 0.8rem; font-weight: 600; cursor: pointer; &.active { background: $navy; color: white; border-color: $navy; } }
+
+/* Clickable counts */
+.sd-clickable { cursor: pointer; text-decoration: underline; text-decoration-style: dotted; &:hover { opacity: 0.7; } }
+
+/* Records table */
+.sd-records-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.sd-records-table th { text-align: left; font-weight: 700; color: $navy-lt; padding: 8px 10px; border-bottom: 2px solid $border; font-size: 0.8rem; }
+.sd-records-table td { padding: 8px 10px; border-bottom: 1px solid $lt; vertical-align: top; }
+.sd-rec-number { font-weight: 600; color: $blue; white-space: nowrap; font-size: 0.8rem; }
+.sd-rec-desc { color: $txt-dk; max-width: 300px; }
+.sd-rec-meta { color: $txt; font-size: 0.8rem; }
+.sd-rec-conf { font-weight: 600; color: $navy; white-space: nowrap; }
+.sd-loading { text-align: center; padding: 20px; color: $txt; font-size: 0.9rem; }
