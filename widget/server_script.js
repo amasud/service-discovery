@@ -1,46 +1,39 @@
-// SERVER SCRIPT - v6.3: Hide/unhide, confirm state feedback, analyze results filtering
+// SERVER SCRIPT - v6.4: Case-insensitive source_type, performance, confirm fix, unhide
 (function() {
   var handled = false;
 
   if (input && input.action) {
 
-    // ═══════ LOAD SUPPLY RESULTS ════════════════════════
     if (input.action === 'loadSupplyResults') {
       handled = true;
-      data.supplyData = buildCompanyHierarchy('', ['kb_knowledge', 'sc_cat_item']);
+      data.supplyData = buildCompanyHierarchy(['kb_knowledge', 'sc_cat_item']);
     }
 
-    // ═══════ LOAD GAPS / ANALYZE RESULTS ════════════════
     if (input.action === 'loadGaps') {
       handled = true;
-      data.gapData = buildCompanyHierarchy('', ['kb_knowledge', 'sc_cat_item', 'incident']);
+      data.gapData = buildCompanyHierarchy(['kb_knowledge', 'sc_cat_item', 'incident']);
       data.gapData.companies = computeGaps(data.gapData.companies);
-      // Filter: remove Unassigned, remove companies with 0 incidents in gaps view
+      // Filter out Unassigned and empty companies
       var filtered = [];
-      for (var fc = 0; fc < data.gapData.companies.length; fc++) {
-        var co = data.gapData.companies[fc];
-        if (co.name === 'Unassigned') continue; // Hide unassigned entirely
-        // Only show companies that have at least some data
-        if (co.totalIncidents > 0 || co.totalKB > 0 || co.totalCatalog > 0) {
-          filtered.push(co);
-        }
+      for (var i = 0; i < data.gapData.companies.length; i++) {
+        var co = data.gapData.companies[i];
+        if (co.name === 'Unassigned') continue;
+        if (co.totalIncidents > 0 || co.totalKB > 0 || co.totalCatalog > 0) filtered.push(co);
       }
       data.gapData.companies = filtered;
     }
 
-    // ═══════ LOAD REPORTS LIST ════════════════════════
     if (input.action === 'loadReports') {
       handled = true;
       data.reports = getReports();
     }
 
-    // ═══════ LOAD REGISTRY ════════════════════════════
     if (input.action === 'loadRegistry') {
       handled = true;
-      data.registry = getRegistry(false); // exclude hidden
+      var includeHidden = input.includeHidden === 'true';
+      data.registry = getRegistry(includeHidden);
     }
 
-    // ═══════ SAVE COVERAGE RULE ═══════════════════════
     if (input.action === 'saveCoverageRule') {
       handled = true;
       var existing = new GlideRecord('u_x_snc_sd_coverage_rule');
@@ -53,19 +46,18 @@
         existing.setValue('u_overridden_on', new GlideDateTime());
         existing.update();
       } else {
-        var newRule = new GlideRecord('u_x_snc_sd_coverage_rule');
-        newRule.initialize();
-        newRule.setValue('u_service_opportunity', input.topicSysId);
-        newRule.setValue('u_product', input.productSysId);
-        newRule.setValue('u_required_coverage', input.rule);
-        newRule.setValue('u_overridden_by', gs.getUserID());
-        newRule.setValue('u_overridden_on', new GlideDateTime());
-        newRule.insert();
+        var nr = new GlideRecord('u_x_snc_sd_coverage_rule');
+        nr.initialize();
+        nr.setValue('u_service_opportunity', input.topicSysId);
+        nr.setValue('u_product', input.productSysId);
+        nr.setValue('u_required_coverage', input.rule);
+        nr.setValue('u_overridden_by', gs.getUserID());
+        nr.setValue('u_overridden_on', new GlideDateTime());
+        nr.insert();
       }
       data.saved = true;
     }
 
-    // ═══════ CONFIRM PRODUCT ══════════════════════════
     if (input.action === 'confirmProduct') {
       handled = true;
       var cpGr = new GlideRecord('u_x_snc_sd_company_product');
@@ -76,203 +68,179 @@
       data.registry = getRegistry(false);
     }
 
-    // ═══════ CONFIRM ALL FOR COMPANY ══════════════════
     if (input.action === 'confirmAllForCompany') {
       handled = true;
       var caGr = new GlideRecord('u_x_snc_sd_company_product');
-      caGr.addQuery('u_company_name', input.companyName);
+      caGr.addQuery('u_company_name', input.companyName || '');
       caGr.addQuery('u_verified', false);
       caGr.query();
+      var count = 0;
       while (caGr.next()) {
         caGr.setValue('u_verified', true);
         caGr.update();
+        count++;
       }
+      gs.info('SD: Confirmed ' + count + ' products for ' + input.companyName);
       data.registry = getRegistry(false);
     }
 
-    // ═══════ HIDE PRODUCT (soft delete) ═══════════════
     if (input.action === 'hideProduct') {
       handled = true;
-      var hpGr = new GlideRecord('u_x_snc_sd_company_product');
-      if (hpGr.get(input.productSysId)) {
-        hpGr.setValue('u_active', false);
-        hpGr.update();
+      var hGr = new GlideRecord('u_x_snc_sd_company_product');
+      if (hGr.get(input.productSysId)) {
+        if (hGr.isValidField('u_active')) {
+          hGr.setValue('u_active', false);
+        }
+        hGr.update();
       }
       data.registry = getRegistry(false);
     }
 
-    // ═══════ UNHIDE PRODUCT ═══════════════════════════
     if (input.action === 'unhideProduct') {
       handled = true;
-      var uhGr = new GlideRecord('u_x_snc_sd_company_product');
-      if (uhGr.get(input.productSysId)) {
-        uhGr.setValue('u_active', true);
-        uhGr.update();
+      var uGr = new GlideRecord('u_x_snc_sd_company_product');
+      if (uGr.get(input.productSysId)) {
+        if (uGr.isValidField('u_active')) {
+          uGr.setValue('u_active', true);
+        }
+        uGr.update();
       }
-      data.registry = getRegistry(true); // include hidden for this view
+      data.registry = getRegistry(true);
     }
 
-    // ═══════ ADD COMPANY/PRODUCT ══════════════════════
     if (input.action === 'addProduct') {
       handled = true;
-      var newProd = new GlideRecord('u_x_snc_sd_company_product');
-      newProd.initialize();
-      newProd.setValue('u_name', input.productName || '');
-      newProd.setValue('u_company_name', input.companyName || '');
-      newProd.setValue('u_normalized_name', (input.productName || '').toLowerCase());
-      newProd.setValue('u_verified', true);
-      newProd.setValue('u_mention_count', 0);
-      newProd.insert();
+      var np = new GlideRecord('u_x_snc_sd_company_product');
+      np.initialize();
+      np.setValue('u_name', input.productName || '');
+      np.setValue('u_company_name', input.companyName || '');
+      np.setValue('u_normalized_name', (input.productName || '').toLowerCase());
+      np.setValue('u_verified', true);
+      np.setValue('u_mention_count', 0);
+      np.insert();
       data.registry = getRegistry(false);
     }
 
-    // ═══════ LOAD UNMATCHED (as registry-style cards) ══
     if (input.action === 'loadUnmatched') {
       handled = true;
       data.unmatched = getUnmatchedGrouped();
     }
   }
 
-  // ═══════ INITIAL PAGE LOAD ══════════════════════════
   if (!handled) {
     data.reports = getReports();
     data.registry = getRegistry(false);
-    data.latestRun = data.reports.length > 0 ? data.reports[0] : null;
   }
 
   // ═══════════════════════════════════════════════════
-  // HELPER FUNCTIONS
+  // HELPERS
   // ═══════════════════════════════════════════════════
 
   function getReports() {
     var reports = [];
-    var runGr = new GlideRecord('u_x_snc_sd_analysis_run');
-    runGr.orderByDesc('u_run_date');
-    runGr.setLimit(20);
-    runGr.query();
-    while (runGr.next()) {
+    var gr = new GlideRecord('u_x_snc_sd_analysis_run');
+    gr.orderByDesc('u_run_date');
+    gr.setLimit(20);
+    gr.query();
+    while (gr.next()) {
       reports.push({
-        sys_id: runGr.getUniqueValue(),
-        name: runGr.getValue('u_name') || '',
-        date: runGr.getDisplayValue('u_run_date') || '',
-        status: runGr.getValue('u_status') || '',
-        totalAnalyzed: parseInt(runGr.getValue('u_total_incidents_analyzed')) || 0,
-        unmatched: parseInt(runGr.getValue('u_items_in_other_bucket')) || 0
+        sys_id: gr.getUniqueValue(),
+        name: gr.getValue('u_name') || '',
+        date: gr.getDisplayValue('u_run_date') || '',
+        status: gr.getValue('u_status') || '',
+        totalAnalyzed: parseInt(gr.getValue('u_total_incidents_analyzed')) || 0,
+        unmatched: parseInt(gr.getValue('u_items_in_other_bucket')) || 0
       });
     }
     return reports;
   }
 
   function getRegistry(includeHidden) {
-    var registry = [];
-    var regGr = new GlideRecord('u_x_snc_sd_company_product');
-    if (!includeHidden) {
-      // u_active might not exist yet, so handle gracefully
-      if (regGr.isValidField('u_active')) {
-        regGr.addQuery('u_active', '!=', false);
-      }
+    var items = [];
+    var gr = new GlideRecord('u_x_snc_sd_company_product');
+    var hasActive = gr.isValidField('u_active');
+    if (!includeHidden && hasActive) {
+      gr.addQuery('u_active', '!=', false);
     }
-    regGr.orderBy('u_company_name');
-    regGr.orderBy('u_name');
-    regGr.query();
-    while (regGr.next()) {
+    gr.orderBy('u_company_name');
+    gr.orderBy('u_name');
+    gr.query();
+    while (gr.next()) {
       var isActive = true;
-      if (regGr.isValidField('u_active')) {
-        isActive = regGr.getValue('u_active') != 'false';
-      }
-      registry.push({
-        sys_id: regGr.getUniqueValue(),
-        name: regGr.getValue('u_name') || '',
-        company: regGr.getValue('u_company_name') || '',
-        verified: regGr.getValue('u_verified') == 'true',
-        mentions: parseInt(regGr.getValue('u_mention_count')) || 0,
+      if (hasActive) isActive = gr.getValue('u_active') != 'false';
+      var name = gr.getValue('u_name') || '';
+      var company = gr.getValue('u_company_name') || '';
+      items.push({
+        sys_id: gr.getUniqueValue(),
+        name: name,
+        displayName: (name === company) ? '(General)' : name,
+        company: company,
+        verified: gr.getValue('u_verified') == 'true',
+        mentions: parseInt(gr.getValue('u_mention_count')) || 0,
         hidden: !isActive
       });
     }
 
     var companies = {};
-    for (var i = 0; i < registry.length; i++) {
-      var co = registry[i].company || 'Other';
-      // Skip entries where product = company (unidentified product)
-      var isGeneral = registry[i].name === co;
-      registry[i].isGeneral = isGeneral;
-
-      if (!companies[co]) {
-        companies[co] = { name: co, products: [], verified: true, totalMentions: 0 };
-      }
-      companies[co].products.push(registry[i]);
-      companies[co].totalMentions += registry[i].mentions;
-      if (!registry[i].verified) companies[co].verified = false;
+    for (var i = 0; i < items.length; i++) {
+      var co = items[i].company || 'Other';
+      if (!companies[co]) companies[co] = { name: co, products: [], verified: true, totalMentions: 0 };
+      companies[co].products.push(items[i]);
+      companies[co].totalMentions += items[i].mentions;
+      if (!items[i].verified) companies[co].verified = false;
     }
 
     var result = [];
-    for (var key in companies) {
-      result.push(companies[key]);
-    }
+    for (var k in companies) result.push(companies[k]);
     result.sort(function(a, b) { return b.totalMentions - a.totalMentions; });
     return result;
   }
 
   function getUnmatchedGrouped() {
-    // Get unmatched classifications and group by extracted company/product
     var groups = {};
-    var clsGr = new GlideRecord('u_x_snc_sd_classification');
-    clsGr.addQuery('u_in_other_bucket', true);
-    clsGr.addQuery('u_source_type', 'incident');
-    clsGr.query();
-    while (clsGr.next()) {
-      var company = clsGr.getValue('u_extracted_company') || 'Unknown';
-      var product = clsGr.getValue('u_extracted_product') || '';
+    var gr = new GlideRecord('u_x_snc_sd_classification');
+    gr.addQuery('u_in_other_bucket', true);
+    gr.query();
+    while (gr.next()) {
+      var company = gr.getValue('u_extracted_company') || 'Unknown';
+      var product = gr.getValue('u_extracted_product') || '';
       var key = company + '|' + product;
-      if (!groups[key]) {
-        groups[key] = {
-          company: company,
-          product: product,
-          count: 0,
-          incidents: []
-        };
-      }
+      if (!groups[key]) groups[key] = { company: company, product: product, count: 0 };
       groups[key].count++;
-      if (groups[key].incidents.length < 3) {
-        groups[key].incidents.push({
-          number: clsGr.getValue('u_source_number') || '',
-          description: clsGr.getValue('u_source_description') || ''
-        });
-      }
     }
 
-    // Convert to array grouped by company
     var companyGroups = {};
     for (var gk in groups) {
       var g = groups[gk];
-      if (!companyGroups[g.company]) {
-        companyGroups[g.company] = { name: g.company, products: [] };
-      }
+      if (!companyGroups[g.company]) companyGroups[g.company] = { name: g.company, products: [] };
       companyGroups[g.company].products.push({
         name: g.product || '(Unidentified product)',
-        count: g.count,
-        incidents: g.incidents
+        count: g.count
       });
     }
 
     var result = [];
-    for (var ck in companyGroups) {
-      result.push(companyGroups[ck]);
-    }
+    for (var ck in companyGroups) result.push(companyGroups[ck]);
     result.sort(function(a, b) {
-      var aCount = a.products.reduce(function(s, p) { return s + p.count; }, 0);
-      var bCount = b.products.reduce(function(s, p) { return s + p.count; }, 0);
-      return bCount - aCount;
+      return b.products.reduce(function(s, p) { return s + p.count; }, 0) - a.products.reduce(function(s, p) { return s + p.count; }, 0);
     });
     return result;
   }
 
-  function buildCompanyHierarchy(runId, sourceTypes) {
+  function normalizeSourceType(srcType) {
+    if (!srcType) return '';
+    var lower = srcType.toLowerCase();
+    if (lower === 'incident') return 'incident';
+    if (lower === 'kb_knowledge') return 'kb_knowledge';
+    if (lower === 'sc_cat_item') return 'sc_cat_item';
+    return lower;
+  }
+
+  function buildCompanyHierarchy(sourceTypes) {
     var productLookup = {};
     var plGr = new GlideRecord('u_x_snc_sd_company_product');
-    if (plGr.isValidField('u_active')) {
-      plGr.addQuery('u_active', '!=', false);
-    }
+    var hasActive = plGr.isValidField('u_active');
+    if (hasActive) plGr.addQuery('u_active', '!=', false);
     plGr.query();
     while (plGr.next()) {
       productLookup[plGr.getUniqueValue()] = {
@@ -283,81 +251,74 @@
     }
 
     var topicLookup = {};
-    var topicGr = new GlideRecord('u_x_snc_sd_opportunity');
-    topicGr.addQuery('u_active', true);
-    topicGr.addNotNullQuery('u_parent_category');
-    topicGr.query();
-    while (topicGr.next()) {
-      topicLookup[topicGr.getUniqueValue()] = {
-        name: topicGr.getValue('u_name') || '',
-        parent: topicGr.getValue('u_parent_category') || '',
-        solution: topicGr.getValue('u_solution_type') || '',
-        sys_id: topicGr.getUniqueValue()
+    var tGr = new GlideRecord('u_x_snc_sd_opportunity');
+    tGr.addQuery('u_active', true);
+    tGr.addNotNullQuery('u_parent_category');
+    tGr.query();
+    while (tGr.next()) {
+      topicLookup[tGr.getUniqueValue()] = {
+        name: tGr.getValue('u_name') || '',
+        parent: tGr.getValue('u_parent_category') || '',
+        solution: tGr.getValue('u_solution_type') || '',
+        sys_id: tGr.getUniqueValue()
       };
     }
 
     var ruleOverrides = {};
-    var ruleGr = new GlideRecord('u_x_snc_sd_coverage_rule');
-    ruleGr.query();
-    while (ruleGr.next()) {
-      var ruleKey = ruleGr.getValue('u_service_opportunity') + '|' + ruleGr.getValue('u_product');
-      ruleOverrides[ruleKey] = ruleGr.getValue('u_required_coverage') || '';
+    var rGr = new GlideRecord('u_x_snc_sd_coverage_rule');
+    rGr.query();
+    while (rGr.next()) {
+      ruleOverrides[rGr.getValue('u_service_opportunity') + '|' + rGr.getValue('u_product')] = rGr.getValue('u_required_coverage') || '';
     }
 
+    // Query classifications — no run filter, combine all
     var clsGr = new GlideRecord('u_x_snc_sd_classification');
-    if (runId) clsGr.addQuery('u_analysis_run', runId);
-    if (sourceTypes && sourceTypes.length > 0) clsGr.addQuery('u_source_type', 'IN', sourceTypes.join(','));
+    // Don't filter by source_type in query — normalize in code to handle case issues
+    clsGr.addNotNullQuery('u_service_opportunity');
     clsGr.query();
 
     var tree = {};
+    var sourceTypeSet = {};
+    for (var st = 0; st < sourceTypes.length; st++) sourceTypeSet[sourceTypes[st]] = true;
+
     while (clsGr.next()) {
+      var rawSrcType = clsGr.getValue('u_source_type') || '';
+      var srcType = normalizeSourceType(rawSrcType);
+
+      // Filter to requested source types
+      if (!sourceTypeSet[srcType]) continue;
+
       var prodRef = clsGr.getValue('u_product') || '';
       var topicRef = clsGr.getValue('u_service_opportunity') || '';
-      var srcType = clsGr.getValue('u_source_type') || '';
 
-      var prodInfo = productLookup[prodRef];
-      if (!prodInfo) {
-        // No product match — put under Unassigned
-        prodInfo = { name: 'Unassigned', company: 'Unassigned', sys_id: '' };
-      }
-
+      var prodInfo = productLookup[prodRef] || { name: 'Unassigned', company: 'Unassigned', sys_id: '' };
       var topicInfo = topicLookup[topicRef] || { name: 'Unclassified', parent: 'Other', solution: '', sys_id: '' };
 
       var companyName = prodInfo.company || 'Unassigned';
       var productName = prodInfo.name || 'Unassigned';
-
-      // Rename company=product to "(General)"
-      if (productName === companyName && companyName !== 'Unassigned') {
-        productName = '(General)';
-      }
+      if (productName === companyName && companyName !== 'Unassigned') productName = '(General)';
 
       if (!tree[companyName]) tree[companyName] = { name: companyName, products: {} };
-      if (!tree[companyName].products[productName]) {
-        tree[companyName].products[productName] = { name: productName, sys_id: prodInfo.sys_id, topics: {} };
-      }
+      if (!tree[companyName].products[productName]) tree[companyName].products[productName] = { name: productName, sys_id: prodInfo.sys_id, topics: {} };
 
       var topicKey = topicRef || topicInfo.name;
       if (!tree[companyName].products[productName].topics[topicKey]) {
         var defaultRule = deriveDefaultRule(topicInfo.solution);
         var overrideKey = topicRef + '|' + prodInfo.sys_id;
-        var rule = ruleOverrides[overrideKey] || defaultRule;
         tree[companyName].products[productName].topics[topicKey] = {
           name: topicInfo.name, parent: topicInfo.parent, sys_id: topicRef,
-          product_sys_id: prodInfo.sys_id, rule: rule,
-          kb: 0, catalog: 0, incidents: 0, records: []
+          product_sys_id: prodInfo.sys_id, rule: ruleOverrides[overrideKey] || defaultRule,
+          kb: 0, catalog: 0, incidents: 0
         };
       }
 
-      var topicNode = tree[companyName].products[productName].topics[topicKey];
-      if (srcType === 'kb_knowledge') topicNode.kb++;
-      else if (srcType === 'sc_cat_item') topicNode.catalog++;
-      else if (srcType === 'incident') topicNode.incidents++;
-
-      if (topicNode.records.length < 5) {
-        topicNode.records.push({ type: srcType, number: clsGr.getValue('u_source_number') || '', description: clsGr.getValue('u_source_description') || '' });
-      }
+      var node = tree[companyName].products[productName].topics[topicKey];
+      if (srcType === 'kb_knowledge') node.kb++;
+      else if (srcType === 'sc_cat_item') node.catalog++;
+      else if (srcType === 'incident') node.incidents++;
     }
 
+    // Convert to sorted arrays
     var companies = [];
     for (var ck in tree) {
       var products = [];
@@ -365,28 +326,22 @@
         var topics = [];
         for (var tk in tree[ck].products[pk].topics) topics.push(tree[ck].products[pk].topics[tk]);
         topics.sort(function(a, b) { return (b.incidents + b.kb + b.catalog) - (a.incidents + a.kb + a.catalog); });
-        products.push({
-          name: tree[ck].products[pk].name, sys_id: tree[ck].products[pk].sys_id, topics: topics,
-          totalKB: topics.reduce(function(s, t) { return s + t.kb; }, 0),
-          totalCatalog: topics.reduce(function(s, t) { return s + t.catalog; }, 0),
-          totalIncidents: topics.reduce(function(s, t) { return s + t.incidents; }, 0)
-        });
+        var totalKB = 0, totalCat = 0, totalInc = 0;
+        for (var ti = 0; ti < topics.length; ti++) { totalKB += topics[ti].kb; totalCat += topics[ti].catalog; totalInc += topics[ti].incidents; }
+        products.push({ name: tree[ck].products[pk].name, sys_id: tree[ck].products[pk].sys_id, topics: topics, totalKB: totalKB, totalCatalog: totalCat, totalIncidents: totalInc });
       }
       products.sort(function(a, b) { return (b.totalIncidents + b.totalKB + b.totalCatalog) - (a.totalIncidents + a.totalKB + a.totalCatalog); });
-      companies.push({
-        name: tree[ck].name, products: products,
-        totalKB: products.reduce(function(s, p) { return s + p.totalKB; }, 0),
-        totalCatalog: products.reduce(function(s, p) { return s + p.totalCatalog; }, 0),
-        totalIncidents: products.reduce(function(s, p) { return s + p.totalIncidents; }, 0)
-      });
+      var coKB = 0, coCat = 0, coInc = 0;
+      for (var pi = 0; pi < products.length; pi++) { coKB += products[pi].totalKB; coCat += products[pi].totalCatalog; coInc += products[pi].totalIncidents; }
+      companies.push({ name: tree[ck].name, products: products, totalKB: coKB, totalCatalog: coCat, totalIncidents: coInc });
     }
     companies.sort(function(a, b) { return (b.totalIncidents + b.totalKB + b.totalCatalog) - (a.totalIncidents + a.totalKB + a.totalCatalog); });
     return { companies: companies };
   }
 
-  function deriveDefaultRule(solutionType) {
-    if (!solutionType) return 'either';
-    var sol = solutionType.toLowerCase();
+  function deriveDefaultRule(sol) {
+    if (!sol) return 'either';
+    sol = sol.toLowerCase();
     if (sol.indexOf('kb') > -1 && sol.indexOf('catalog') > -1) return 'both';
     if (sol.indexOf('kb') > -1) return 'kb';
     if (sol.indexOf('catalog') > -1) return 'catalog';
@@ -400,7 +355,7 @@
         var prodGaps = 0;
         for (var t = 0; t < companies[c].products[p].topics.length; t++) {
           var topic = companies[c].products[p].topics[t];
-          if (topic.incidents === 0) { topic.gapStatus = 'no-demand'; topic.gaps = []; topic.covered = true; continue; }
+          if (topic.incidents === 0) { topic.gaps = []; topic.covered = true; continue; }
           var rule = topic.rule || 'either';
           var gaps = [];
           if (rule === 'kb' && topic.kb === 0) gaps.push('KB article');
@@ -410,7 +365,6 @@
           if (rule === 'none') gaps = [];
           topic.covered = gaps.length === 0;
           topic.gaps = gaps;
-          topic.gapStatus = gaps.length > 0 ? 'gap' : 'covered';
           if (!topic.covered) { prodGaps++; compGaps++; }
         }
         companies[c].products[p].gapCount = prodGaps;
