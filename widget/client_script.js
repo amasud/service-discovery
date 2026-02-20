@@ -158,20 +158,67 @@ function() {
     c.data.companyName = companyName;
     c.data.productName = productName;
     c.server.update().then(function() {
-      // Reload unmatched to reflect the change
       c.server.get({ action: 'loadUnmatched' }).then(function(r) {
         c.data.unmatched = r.data.unmatched;
+        c.data.noProduct = r.data.noProduct;
+        c.data.unmatchedCount = r.data.unmatchedCount;
+        c.data.noProductCount = r.data.noProductCount;
       });
     });
   };
 
-  c.addProductFromUnmatched = function(companyName, productName) {
-    c.server.get({ action: 'addProduct', companyName: companyName, productName: productName }).then(function() {
-      // Reload unmatched to reflect the change
-      c.server.get({ action: 'loadUnmatched' }).then(function(r) {
-        c.data.unmatched = r.data.unmatched;
-      });
+  // ─── CLUSTER ASSIGNMENT (Step 5) ─────────────────────
+  c.clusterAssign = {};
+
+  c.toggleClusterAssign = function(topicSysId) {
+    if (c.clusterAssign[topicSysId]) {
+      c.clusterAssign[topicSysId] = null;
+    } else {
+      c.clusterAssign[topicSysId] = { mode: 'existing', productSysId: '', newCompany: '', newProduct: '' };
+    }
+  };
+
+  c.assignExistingProduct = function(clusterKey) {
+    var assign = c.clusterAssign[clusterKey];
+    if (!assign || !assign.productSysId) return;
+    c.data.action = 'assignProductToCluster';
+    c.data.topicSysId = clusterKey.replace(/[^a-f0-9]/g, '').substring(0, 32); // extract topic sys_id
+    c.data.productSysId = assign.productSysId;
+    c.server.update().then(function() {
+      c.clusterAssign[clusterKey] = null;
     });
+  };
+
+  c.assignExistingProductDirect = function(topicSysId, productSysId) {
+    if (!topicSysId || !productSysId) return;
+    c.data.action = 'assignProductToCluster';
+    c.data.topicSysId = topicSysId;
+    c.data.productSysId = productSysId;
+    c.server.update().then(function() {});
+  };
+
+  c.createAndAssignProduct = function(clusterKey) {
+    var assign = c.clusterAssign[clusterKey];
+    if (!assign || !assign.newProduct) return;
+    c.data.action = 'createAndAssignToCluster';
+    c.data.topicSysId = clusterKey.replace(/[^a-f0-9]/g, '').substring(0, 32);
+    c.data.companyName = assign.newCompany;
+    c.data.productName = assign.newProduct;
+    c.server.update().then(function() {
+      c.clusterAssign[clusterKey] = null;
+    });
+  };
+
+  c.getProductList = function() {
+    if (!c.data.registry) return [];
+    var list = [];
+    for (var ci = 0; ci < c.data.registry.length; ci++) {
+      for (var pi = 0; pi < c.data.registry[ci].products.length; pi++) {
+        var p = c.data.registry[ci].products[pi];
+        list.push({ sys_id: p.sys_id, label: c.data.registry[ci].name + ' - ' + (p.displayName || p.name) });
+      }
+    }
+    return list;
   };
 
   // ─── STATS ──────────────────────────────────────────
