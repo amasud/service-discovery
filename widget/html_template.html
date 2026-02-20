@@ -137,18 +137,66 @@
     </div>
 
     <div ng-if="c.data.noProduct &amp;&amp; c.data.noProduct.length > 0">
-      <h3 class="sd-section-heading">Incidents without products</h3>
-      <p class="sd-section-desc">Classified to a topic but no product was identified. Review sample incidents to decide if a product should be added.</p>
-      <div class="sd-card sd-no-product-card" ng-repeat="topic in c.data.noProduct">
-        <div class="sd-no-product-header">
-          <div><div class="sd-no-product-topic">{{topic.name}}</div><div class="sd-no-product-parent">{{topic.parent}}</div></div>
-          <div class="sd-no-product-count">{{topic.count}} incident{{topic.count !== 1 ? 's' : ''}}</div>
-        </div>
-        <div class="sd-no-product-samples" ng-if="topic.samples.length > 0">
-          <div class="sd-no-product-sample" ng-repeat="s in topic.samples"><span class="sd-rec-number">{{s.number}}</span> <span class="sd-rec-desc">{{s.description}}</span></div>
+      <h3 class="sd-section-heading">Incidents needing product assignment</h3>
+      <p class="sd-section-desc">Grouped by category and product type. Assign an existing product or create a new one.</p>
+
+      <div ng-repeat="catGroup in c.data.noProduct">
+        <h4 class="sd-category-heading">{{catGroup.name}}</h4>
+
+        <div class="sd-card sd-no-product-card" ng-repeat="cluster in catGroup.clusters">
+          <div class="sd-no-product-header">
+            <div>
+              <div class="sd-no-product-topic">
+                <strong ng-if="cluster.detectedCompany">{{cluster.detectedCompany}} &mdash; </strong>{{cluster.detectedProduct || cluster.productType}}
+              </div>
+              <div class="sd-no-product-parent">
+                {{cluster.productType}}
+                <span class="sd-no-product-hint" ng-if="!cluster.detectedProduct"> &middot; What product is this?</span>
+              </div>
+            </div>
+            <div class="sd-no-product-right">
+              <span class="sd-no-product-count">{{cluster.count}} incident{{cluster.count !== 1 ? 's' : ''}}</span>
+              <button class="sd-btn-sm sd-btn-confirm" ng-if="!c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')]" ng-click="c.toggleClusterAssign(cluster.category + cluster.productType + (cluster.detectedProduct || ''))">Assign product</button>
+              <button class="sd-btn-sm" ng-if="c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')]" ng-click="c.toggleClusterAssign(cluster.category + cluster.productType + (cluster.detectedProduct || ''))">Cancel</button>
+            </div>
+          </div>
+
+          <!-- Recommendation banner -->
+          <div class="sd-recommendation" ng-if="cluster.recommendation &amp;&amp; !c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')]">
+            <span class="sd-rec-label">Suggested match:</span> <strong>{{cluster.recommendation.label}}</strong>
+            <button class="sd-btn-sm sd-btn-confirm sd-rec-btn" ng-click="c.assignExistingProductDirect(cluster.category + '|' + cluster.productType, cluster.recommendation.sys_id)">Accept</button>
+          </div>
+
+          <!-- Assign controls -->
+          <div class="sd-cluster-assign" ng-if="c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')]">
+            <div class="sd-cluster-tabs">
+              <button class="sd-cluster-tab" ng-class="{'active': c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')].mode === 'existing'}" ng-click="c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')].mode = 'existing'">Existing product</button>
+              <button class="sd-cluster-tab" ng-class="{'active': c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')].mode === 'new'}" ng-click="c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')].mode = 'new'">Create new</button>
+            </div>
+            <div ng-if="c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')].mode === 'existing'" class="sd-cluster-form">
+              <select class="sd-input sd-select" ng-model="c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')].productSysId">
+                <option value="">Select a product...</option>
+                <option ng-repeat="p in c.getProductList()" value="{{p.sys_id}}">{{p.label}}</option>
+              </select>
+              <button class="sd-btn-primary sd-btn-sm" ng-click="c.assignExistingProduct(cluster.category + cluster.productType + (cluster.detectedProduct || ''))">Assign</button>
+            </div>
+            <div ng-if="c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')].mode === 'new'" class="sd-cluster-form">
+              <div class="sd-cluster-form-row">
+                <input type="text" class="sd-input" ng-model="c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')].newCompany" placeholder="Company name" ng-init="c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')].newCompany = cluster.detectedCompany">
+                <input type="text" class="sd-input" ng-model="c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')].newProduct" placeholder="Product name" ng-init="c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')].newProduct = cluster.detectedProduct">
+              </div>
+              <button class="sd-btn-primary sd-btn-sm" ng-click="c.createAndAssignProduct(cluster.category + cluster.productType + (cluster.detectedProduct || ''))">Create &amp; assign</button>
+            </div>
+          </div>
+
+          <!-- Sample incidents -->
+          <div class="sd-no-product-samples" ng-if="cluster.samples.length > 0 &amp;&amp; !c.clusterAssign[cluster.category + cluster.productType + (cluster.detectedProduct || '')]">
+            <div class="sd-no-product-sample" ng-repeat="s in cluster.samples"><span class="sd-rec-number">{{s.number}}</span> <span class="sd-rec-desc">{{s.description}}</span></div>
+          </div>
         </div>
       </div>
     </div>
+
 
     <div class="sd-card" ng-if="(!c.data.unmatched || c.data.unmatched.length === 0) &amp;&amp; (!c.data.noProduct || c.data.noProduct.length === 0)">
       <p class="sd-brief-text">No unmatched products or unidentified incidents found.</p>
