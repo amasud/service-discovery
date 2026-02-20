@@ -168,15 +168,30 @@ $white: #FFFFFF;
 /* Section headings */
 .sd-section-heading { font-size: 1.1rem; font-weight: 700; color: $txt-dk; margin: 24px 0 6px; }
 .sd-section-desc { font-size: 0.85rem; color: $txt; margin: 0 0 16px; }
+.sd-category-heading { font-size: 1rem; font-weight: 700; color: $navy; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 2px solid $teal; }
 
 /* No-product cards */
 .sd-no-product-card { padding: 16px 20px; margin-bottom: 12px; }
 .sd-no-product-header { display: flex; justify-content: space-between; align-items: center; }
 .sd-no-product-topic { font-size: 0.95rem; font-weight: 700; color: $txt-dk; }
 .sd-no-product-parent { font-size: 0.8rem; color: $txt; margin-top: 2px; }
+.sd-no-product-hint { font-style: italic; color: $orange; }
+.sd-no-product-right { display: flex; align-items: center; gap: 10px; }
 .sd-no-product-count { font-size: 0.9rem; font-weight: 600; color: $navy; white-space: nowrap; }
 .sd-no-product-samples { margin-top: 12px; border-top: 1px solid $lt; padding-top: 10px; }
 .sd-no-product-sample { padding: 4px 0; font-size: 0.85rem; color: $navy-lt; display: flex; gap: 10px; }
+
+/* Cluster assign controls */
+.sd-cluster-assign { margin-top: 14px; padding-top: 14px; border-top: 1px solid $lt; }
+.sd-cluster-tabs { display: flex; gap: 0; margin-bottom: 12px; }
+.sd-cluster-tab { padding: 6px 16px; font-size: 0.8rem; font-weight: 600; border: 1px solid $border; background: $white; color: $txt; cursor: pointer; &:first-child { border-radius: 6px 0 0 6px; } &:last-child { border-radius: 0 6px 6px 0; border-left: none; } &.active { background: $navy; color: white; border-color: $navy; } }
+.sd-cluster-form { display: flex; align-items: center; gap: 10px; }
+.sd-cluster-form-row { display: flex; gap: 8px; flex: 1; }
+
+/* Recommendation banner */
+.sd-recommendation { margin-top: 10px; padding: 10px 14px; background: #EBF5FF; border: 1px solid #B3D7FF; border-radius: 6px; font-size: 0.85rem; color: $navy; display: flex; align-items: center; gap: 10px; }
+.sd-rec-label { font-weight: 600; color: $blue; white-space: nowrap; }
+.sd-rec-btn { margin-left: auto; }
 
 /* Records table */
 .sd-records-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
