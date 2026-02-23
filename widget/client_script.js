@@ -154,16 +154,58 @@ function() {
     c.server.update().then(function() { c.showAddCompany = false; });
   };
   c.addProductFromUnmatched = function(companyName, productName) {
-    c.data.action = 'addProduct';
-    c.data.companyName = companyName;
-    c.data.productName = productName;
-    c.server.update().then(function() {
+    // Default unknown company to product name
+    var co = (companyName && companyName !== 'Unknown') ? companyName : productName;
+    var pr = productName || co;
+    c.server.get({ action: 'addProduct', companyName: co, productName: pr }).then(function() {
       c.server.get({ action: 'loadUnmatched' }).then(function(r) {
         c.data.unmatched = r.data.unmatched;
         c.data.noProduct = r.data.noProduct;
         c.data.unmatchedCount = r.data.unmatchedCount;
         c.data.noProductCount = r.data.noProductCount;
       });
+      // Also reload registry
+      c.server.get({ action: 'loadRegistry', includeHidden: 'false' }).then(function(r) {
+        c.data.registry = r.data.registry;
+      });
+    });
+  };
+
+  // ─── RENAME PRODUCT ─────────────────────────────────
+  c.renameState = {};
+  c.startRename = function(product) {
+    c.renameState[product.sys_id] = { company: product.company, name: product.displayName || product.name };
+  };
+  c.cancelRename = function(productSysId) { delete c.renameState[productSysId]; };
+  c.saveRename = function(productSysId) {
+    var state = c.renameState[productSysId];
+    if (!state) return;
+    c.server.get({ action: 'renameProduct', productSysId: productSysId, newCompanyName: state.company, newProductName: state.name }).then(function(r) {
+      delete c.renameState[productSysId];
+      if (r.data.registry) c.data.registry = r.data.registry;
+      else c.reloadRegistry();
+    });
+  };
+
+  // ─── MERGE PRODUCTS ─────────────────────────────────
+  c.mergeMode = false;
+  c.mergeSelected = {};
+  c.toggleMergeMode = function() { c.mergeMode = !c.mergeMode; c.mergeSelected = {}; };
+  c.toggleMergeSelect = function(productSysId) {
+    if (c.mergeSelected[productSysId]) delete c.mergeSelected[productSysId];
+    else c.mergeSelected[productSysId] = true;
+  };
+  c.getMergeSelectedCount = function() {
+    var n = 0; for (var k in c.mergeSelected) { if (c.mergeSelected[k]) n++; } return n;
+  };
+  c.executeMerge = function(targetSysId) {
+    var sourceIds = [];
+    for (var k in c.mergeSelected) { if (c.mergeSelected[k] && k !== targetSysId) sourceIds.push(k); }
+    if (sourceIds.length === 0) return;
+    c.server.get({ action: 'mergeProducts', targetSysId: targetSysId, sourceSysIds: sourceIds.join(',') }).then(function(r) {
+      c.mergeMode = false; c.mergeSelected = {};
+      if (r.data.registry) c.data.registry = r.data.registry;
+      else c.reloadRegistry();
     });
   };
 
