@@ -327,6 +327,55 @@
       data.registry = getRegistry(false);
     }
 
+    // ═══════ MERGE PRODUCTS ═══════════════════════════
+    if (input.action === 'mergeProducts') {
+      handled = true;
+      // targetSysId = the product to keep
+      // sourceSysIds = comma-separated list of products to merge into target
+      var targetSysId = input.targetSysId || '';
+      var sourceSysIds = (input.sourceSysIds || '').split(',');
+      
+      if (targetSysId && sourceSysIds.length > 0) {
+        var mergedCount = 0;
+        for (var mi = 0; mi < sourceSysIds.length; mi++) {
+          var srcId = sourceSysIds[mi].trim();
+          if (!srcId || srcId === targetSysId) continue;
+          
+          // Reassign all classifications from source to target
+          var reassignGr = new GlideRecord('u_x_snc_sd_classification');
+          reassignGr.addQuery('u_product', srcId);
+          reassignGr.query();
+          while (reassignGr.next()) {
+            reassignGr.setValue('u_product', targetSysId);
+            reassignGr.update();
+            mergedCount++;
+          }
+          
+          // Deactivate the source product
+          var srcProdGr = new GlideRecord('u_x_snc_sd_company_product');
+          if (srcProdGr.get(srcId)) {
+            if (srcProdGr.isValidField('u_active')) srcProdGr.setValue('u_active', false);
+            srcProdGr.update();
+          }
+        }
+        gs.info('SD: Merged ' + mergedCount + ' classifications into product ' + targetSysId);
+      }
+      data.registry = getRegistry(false);
+    }
+
+    // ═══════ RENAME PRODUCT ═══════════════════════════
+    if (input.action === 'renameProduct') {
+      handled = true;
+      var renameGr = new GlideRecord('u_x_snc_sd_company_product');
+      if (renameGr.get(input.productSysId)) {
+        if (input.newProductName) renameGr.setValue('u_name', input.newProductName);
+        if (input.newCompanyName) renameGr.setValue('u_company_name', input.newCompanyName);
+        renameGr.setValue('u_normalized_name', (input.newProductName || '').toLowerCase());
+        renameGr.update();
+      }
+      data.registry = getRegistry(false);
+    }
+
     if (input.action === 'confirmAllForCompany') {
       handled = true;
       var caGr = new GlideRecord('u_x_snc_sd_company_product');
@@ -369,14 +418,35 @@
 
     if (input.action === 'addProduct') {
       handled = true;
+      var apCompany = input.companyName || '';
+      var apProduct = input.productName || '';
+      // Default company to product if empty
+      if (!apCompany || apCompany === 'Unknown') apCompany = apProduct;
+      if (!apProduct) apProduct = apCompany;
+      
       var np = new GlideRecord('u_x_snc_sd_company_product');
       np.initialize();
-      np.setValue('u_name', input.productName || '');
-      np.setValue('u_company_name', input.companyName || '');
-      np.setValue('u_normalized_name', (input.productName || '').toLowerCase());
+      np.setValue('u_name', apProduct);
+      np.setValue('u_company_name', apCompany);
+      np.setValue('u_normalized_name', apProduct.toLowerCase());
       np.setValue('u_verified', true);
       np.setValue('u_mention_count', 0);
-      np.insert();
+      if (np.isValidField('u_active')) np.setValue('u_active', true);
+      var newProdId = np.insert();
+      
+      // Also reassign unmatched classifications that match this product name
+      if (newProdId && apProduct) {
+        var reassign = new GlideRecord('u_x_snc_sd_classification');
+        reassign.addQuery('u_in_other_bucket', true);
+        reassign.addQuery('u_extracted_product', apProduct);
+        reassign.query();
+        while (reassign.next()) {
+          reassign.setValue('u_product', newProdId);
+          reassign.setValue('u_in_other_bucket', false);
+          reassign.update();
+        }
+      }
+      
       data.registry = getRegistry(false);
     }
 
@@ -531,73 +601,28 @@
   }
 
   function getUnmatchedGrouped() {
-    // Build registry lookup for recommendations
-    var registryProducts = [];
-    var rpGr = new GlideRecord('u_x_snc_sd_company_product');
-    var rpHasActive = rpGr.isValidField('u_active');
-    if (rpHasActive) rpGr.addQuery('u_active', '!=', false);
-    rpGr.query();
-    while (rpGr.next()) {
-      registryProducts.push({
-        sys_id: rpGr.getUniqueValue(),
-        name: rpGr.getValue('u_name') || '',
-        company: rpGr.getValue('u_company_name') || '',
-        label: (rpGr.getValue('u_company_name') || '') + ' - ' + (rpGr.getValue('u_name') || '')
-      });
-    }
+    var hasProductTypeField = new GlideRecord('u_x_snc_sd_classification').isValidField('u_product_type');
+    var allProducts = {};
 
-    // Map product_type to taxonomy category for grouping
-    var typeToCategory = {
-      'Email': 'Application Support',
-      'Chat & collaboration': 'Application Support',
-      'Productivity suite': 'Application Support',
-      'Business application': 'Application Support',
-      'Browser': 'Application Support',
-      'Operating system': 'Application Support',
-      'Telephony': 'Application Support',
-      'Identity & auth': 'Account Management',
-      'Laptop': 'Hardware Support',
-      'Desktop': 'Hardware Support',
-      'Mobile device': 'Hardware Support',
-      'Monitor': 'Hardware Support',
-      'Peripheral': 'Hardware Support',
-      'Printer': 'Printing & Scanning',
-      'Network': 'Network & Connectivity',
-      'VPN & remote access': 'Network & Connectivity',
-      'Security': 'Security & Compliance',
-      'Storage & sync': 'Data & Storage'
-    };
-
-    // Section 1: Incidents where AI found a product not in registry
-    var uGroups = {};
+    // Pass 1: Incidents where AI found a product not in registry
     var uGr = new GlideRecord('u_x_snc_sd_classification');
     uGr.addQuery('u_in_other_bucket', true);
     uGr.addQuery('u_source_type', 'incident');
     uGr.query();
     while (uGr.next()) {
-      var uCompany = uGr.getValue('u_extracted_company') || 'Unknown';
       var uProduct = uGr.getValue('u_extracted_product') || '';
+      var uCompany = uGr.getValue('u_extracted_company') || '';
+      if (!uCompany) uCompany = uProduct || 'Unknown';
+      if (!uProduct) uProduct = uCompany;
       var uKey = uCompany + '|' + uProduct;
-      if (!uGroups[uKey]) uGroups[uKey] = { company: uCompany, product: uProduct, count: 0, samples: [] };
-      uGroups[uKey].count++;
-      if (uGroups[uKey].samples.length < 3) {
-        uGroups[uKey].samples.push({ number: uGr.getValue('u_source_number') || '', description: uGr.getValue('u_source_description') || '' });
+      if (!allProducts[uKey]) allProducts[uKey] = { company: uCompany, product: uProduct, count: 0, samples: [] };
+      allProducts[uKey].count++;
+      if (allProducts[uKey].samples.length < 3) {
+        allProducts[uKey].samples.push({ number: uGr.getValue('u_source_number') || '', description: uGr.getValue('u_source_description') || '' });
       }
     }
-    var unmatchedCompanies = {};
-    for (var ugk in uGroups) {
-      var ug = uGroups[ugk];
-      if (!unmatchedCompanies[ug.company]) unmatchedCompanies[ug.company] = { name: ug.company, products: [] };
-      unmatchedCompanies[ug.company].products.push({ name: ug.product || '(Unidentified)', count: ug.count, samples: ug.samples });
-    }
-    var unmatchedResult = [];
-    for (var uck in unmatchedCompanies) unmatchedResult.push(unmatchedCompanies[uck]);
-    unmatchedResult.sort(function(a, b) { return b.products.reduce(function(s, p) { return s + p.count; }, 0) - a.products.reduce(function(s, p) { return s + p.count; }, 0); });
 
-    // Section 2: Incidents with no product — group by Category → product_type
-    var hasProductTypeField = new GlideRecord('u_x_snc_sd_classification').isValidField('u_product_type');
-    
-    var clusters = {};
+    // Pass 2: Incidents with no product — use product_type as company/product
     var npGr = new GlideRecord('u_x_snc_sd_classification');
     npGr.addQuery('u_source_type', 'incident');
     npGr.addNullQuery('u_product');
@@ -606,70 +631,40 @@
     npGr.query();
     while (npGr.next()) {
       var productType = hasProductTypeField ? (npGr.getValue('u_product_type') || '') : '';
-      var extractedCompany = npGr.getValue('u_extracted_company') || '';
-      var extractedProduct = npGr.getValue('u_extracted_product') || '';
-      var category = typeToCategory[productType] || 'Other';
-      
-      // Cluster key: category + product_type + extracted product (if any)
-      var cKey;
-      if (extractedProduct) {
-        cKey = category + '|' + productType + '|' + extractedCompany + '|' + extractedProduct;
-      } else {
-        cKey = category + '|' + productType + '||';
-      }
-
-      if (!clusters[cKey]) {
-        // Find recommendation from registry
-        var rec = null;
-        if (extractedProduct) {
-          for (var rj = 0; rj < registryProducts.length; rj++) {
-            if (registryProducts[rj].name.toLowerCase() === extractedProduct.toLowerCase()) {
-              rec = { sys_id: registryProducts[rj].sys_id, label: registryProducts[rj].label };
-              break;
-            }
-          }
-        }
-        clusters[cKey] = {
-          category: category,
-          productType: productType || 'Uncategorized',
-          detectedCompany: extractedCompany,
-          detectedProduct: extractedProduct,
-          recommendation: rec,
-          count: 0,
-          samples: []
-        };
-      }
-      clusters[cKey].count++;
-      if (clusters[cKey].samples.length < 3) {
-        clusters[cKey].samples.push({ number: npGr.getValue('u_source_number') || '', description: npGr.getValue('u_source_description') || '' });
+      var npCompany = npGr.getValue('u_extracted_company') || '';
+      var npProduct = npGr.getValue('u_extracted_product') || '';
+      if (!npProduct) npProduct = productType || 'Uncategorized';
+      if (!npCompany) npCompany = npProduct;
+      var npKey = npCompany + '|' + npProduct;
+      if (!allProducts[npKey]) allProducts[npKey] = { company: npCompany, product: npProduct, count: 0, samples: [] };
+      allProducts[npKey].count++;
+      if (allProducts[npKey].samples.length < 3) {
+        allProducts[npKey].samples.push({ number: npGr.getValue('u_source_number') || '', description: npGr.getValue('u_source_description') || '' });
       }
     }
 
-    // Convert to category-grouped structure
-    var categoryGroups = {};
-    for (var clk in clusters) {
-      var cl = clusters[clk];
-      if (!categoryGroups[cl.category]) categoryGroups[cl.category] = { name: cl.category, clusters: [] };
-      categoryGroups[cl.category].clusters.push(cl);
+    // Group by company
+    var companyGroups = {};
+    for (var pk in allProducts) {
+      var p = allProducts[pk];
+      if (!companyGroups[p.company]) companyGroups[p.company] = { name: p.company, products: [] };
+      companyGroups[p.company].products.push(p);
     }
-    // Sort clusters within each category
-    var noProductResult = [];
-    for (var cgk in categoryGroups) {
-      categoryGroups[cgk].clusters.sort(function(a, b) { return b.count - a.count; });
-      noProductResult.push(categoryGroups[cgk]);
+    var result = [];
+    for (var ck in companyGroups) {
+      companyGroups[ck].products.sort(function(a, b) { return b.count - a.count; });
+      result.push(companyGroups[ck]);
     }
-    noProductResult.sort(function(a, b) {
-      var aTotal = a.clusters.reduce(function(s, c) { return s + c.count; }, 0);
-      var bTotal = b.clusters.reduce(function(s, c) { return s + c.count; }, 0);
-      return bTotal - aTotal;
+    result.sort(function(a, b) {
+      var aT = a.products.reduce(function(s, p) { return s + p.count; }, 0);
+      var bT = b.products.reduce(function(s, p) { return s + p.count; }, 0);
+      return bT - aT;
     });
 
-    return {
-      unmatched: unmatchedResult,
-      noProduct: noProductResult,
-      unmatchedCount: unmatchedResult.reduce(function(s, c) { return s + c.products.reduce(function(s2, p) { return s2 + p.count; }, 0); }, 0),
-      noProductCount: Object.keys(clusters).length > 0 ? Object.keys(clusters).reduce(function(s, k) { return s + clusters[k].count; }, 0) : 0
-    };
+    var totalCount = 0;
+    for (var rk in allProducts) totalCount += allProducts[rk].count;
+
+    return { unmatched: result, noProduct: [], unmatchedCount: totalCount, noProductCount: 0 };
   }
 
   function normalizeSourceType(srcType) {
@@ -884,6 +879,9 @@
     // If no specific product, use company name
     if (!productName) productName = companyName;
     if (!productName) return '';
+
+    // If no company, default to product name (e.g., CRM → CRM/CRM)
+    if (!companyName) companyName = productName;
 
     // Check existing
     var existing = new GlideRecord('u_x_snc_sd_company_product');
