@@ -132,6 +132,17 @@ $white: #FFFFFF;
 .sd-reg-product-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .sd-add-btn { border: 2px dashed $border; border-radius: 8px; padding: 16px; text-align: center; font-size: 0.9rem; font-weight: 600; color: $txt; cursor: pointer; margin-bottom: 20px; }
 
+/* Rename inline */
+.sd-rename-form { display: flex; align-items: center; gap: 8px; flex: 1; }
+.sd-input-sm { padding: 6px 10px; font-size: 0.85rem; }
+
+/* Merge */
+.sd-merge-check { margin-right: 8px; cursor: pointer; flex-shrink: 0; }
+.merge-selected { background: #EBF5FF !important; border-left: 3px solid $blue !important; }
+.sd-merge-toolbar { background: $white; border: 1px solid $blue; border-radius: 8px; padding: 14px 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: $navy; }
+.sd-reg-toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.sd-add-btn-inline { font-size: 0.9rem; font-weight: 600; color: $txt; cursor: pointer; padding: 8px 16px; border: 2px dashed $border; border-radius: 6px; }
+
 /* Reports */
 .sd-report-card { cursor: pointer; padding: 20px; &:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); } }
 .sd-report-main { display: flex; justify-content: space-between; align-items: center; }
@@ -180,6 +191,8 @@ $white: #FFFFFF;
 .sd-no-product-count { font-size: 0.9rem; font-weight: 600; color: $navy; white-space: nowrap; }
 .sd-no-product-samples { margin-top: 12px; border-top: 1px solid $lt; padding-top: 10px; }
 .sd-no-product-sample { padding: 4px 0; font-size: 0.85rem; color: $navy-lt; display: flex; gap: 10px; }
+.sd-indent { padding-left: 64px; }
+.sd-reg-product-row-wrap { border-bottom: 1px solid $lt; &:last-child { border-bottom: none; } }
 
 /* Cluster assign controls */
 .sd-cluster-assign { margin-top: 14px; padding-top: 14px; border-top: 1px solid $lt; }
