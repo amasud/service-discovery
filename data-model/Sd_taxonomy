@@ -1,0 +1,121 @@
+// SD: Replace taxonomy with pattern-based topics
+// Run in Background Scripts
+
+// ═══ STEP 1: Deactivate all existing topics and categories ═══
+var deactivated = 0;
+var oldGr = new GlideRecord('u_x_snc_sd_opportunity');
+oldGr.addQuery('u_active', true);
+oldGr.query();
+while (oldGr.next()) {
+  oldGr.setValue('u_active', false);
+  oldGr.update();
+  deactivated++;
+}
+gs.info('SD TAX: Deactivated ' + deactivated + ' existing topics/categories');
+
+// ═══ STEP 2: Create new categories ═══
+var categories = [
+  'Application Support',
+  'Hardware Support',
+  'Account Management',
+  'Printing & Scanning',
+  'Network & Connectivity',
+  'Security & Compliance',
+  'Data & Storage'
+];
+
+var catCreated = 0;
+for (var c = 0; c < categories.length; c++) {
+  var catCheck = new GlideRecord('u_x_snc_sd_opportunity');
+  catCheck.addQuery('u_name', categories[c]);
+  catCheck.addNullQuery('u_parent_category');
+  catCheck.query();
+  if (catCheck.next()) {
+    catCheck.setValue('u_active', true);
+    catCheck.update();
+  } else {
+    var catGr = new GlideRecord('u_x_snc_sd_opportunity');
+    catGr.initialize();
+    catGr.setValue('u_name', categories[c]);
+    catGr.setValue('u_active', true);
+    catGr.insert();
+    catCreated++;
+  }
+}
+gs.info('SD TAX: Created/reactivated ' + catCreated + ' categories');
+
+// ═══ STEP 3: Create new topics ═══
+var topics = [
+  // Application Support
+  { name: 'Application access', parent: 'Application Support', solution: 'KB Article + Catalog Item' },
+  { name: 'Application errors & crashes', parent: 'Application Support', solution: 'KB Article' },
+  { name: 'Application performance', parent: 'Application Support', solution: 'KB Article' },
+  { name: 'Application functionality', parent: 'Application Support', solution: 'KB Article' },
+  { name: 'Application configuration', parent: 'Application Support', solution: 'KB Article' },
+  
+  // Hardware Support
+  { name: 'Hardware not working', parent: 'Hardware Support', solution: 'KB Article' },
+  { name: 'Hardware intermittent issues', parent: 'Hardware Support', solution: 'KB Article' },
+  { name: 'Hardware damage & replacement', parent: 'Hardware Support', solution: 'Catalog Item' },
+  { name: 'Hardware request', parent: 'Hardware Support', solution: 'Catalog Item' },
+  { name: 'Device connectivity', parent: 'Hardware Support', solution: 'KB Article' },
+  
+  // Account Management
+  { name: 'Account locked out', parent: 'Account Management', solution: 'KB Article' },
+  { name: 'Password & PIN reset', parent: 'Account Management', solution: 'KB Article + Catalog Item' },
+  { name: 'Access provisioning', parent: 'Account Management', solution: 'Catalog Item' },
+  { name: 'Access deprovisioning', parent: 'Account Management', solution: 'Catalog Item' },
+  { name: 'Group & permission changes', parent: 'Account Management', solution: 'Catalog Item' },
+  
+  // Printing & Scanning
+  { name: 'Print issues', parent: 'Printing & Scanning', solution: 'KB Article' },
+  { name: 'Supplies request', parent: 'Printing & Scanning', solution: 'Catalog Item' },
+  
+  // Network & Connectivity
+  { name: 'Network issues', parent: 'Network & Connectivity', solution: 'KB Article' },
+  { name: 'VPN issues', parent: 'Network & Connectivity', solution: 'KB Article' },
+  
+  // Security & Compliance
+  { name: 'Security concerns', parent: 'Security & Compliance', solution: 'KB Article' },
+  
+  // Data & Storage
+  { name: 'Data issues', parent: 'Data & Storage', solution: 'KB Article' },
+  { name: 'Storage request', parent: 'Data & Storage', solution: 'Catalog Item' }
+];
+
+var topicCreated = 0;
+for (var i = 0; i < topics.length; i++) {
+  var t = topics[i];
+  var check = new GlideRecord('u_x_snc_sd_opportunity');
+  check.addQuery('u_name', t.name);
+  check.addQuery('u_parent_category', t.parent);
+  check.query();
+  if (check.next()) {
+    check.setValue('u_active', true);
+    check.setValue('u_solution_type', t.solution);
+    check.update();
+  } else {
+    var gr = new GlideRecord('u_x_snc_sd_opportunity');
+    gr.initialize();
+    gr.setValue('u_name', t.name);
+    gr.setValue('u_parent_category', t.parent);
+    gr.setValue('u_solution_type', t.solution);
+    gr.setValue('u_active', true);
+    gr.insert();
+    topicCreated++;
+  }
+}
+gs.info('SD TAX: Created ' + topicCreated + ' new topics');
+
+// ═══ VERIFICATION ═══
+var activeTopics = new GlideRecord('u_x_snc_sd_opportunity');
+activeTopics.addQuery('u_active', true);
+activeTopics.addNotNullQuery('u_parent_category');
+activeTopics.query();
+
+var activeCats = new GlideRecord('u_x_snc_sd_opportunity');
+activeCats.addQuery('u_active', true);
+activeCats.addNullQuery('u_parent_category');
+activeCats.query();
+
+gs.info('SD TAX: ✓ Active: ' + activeTopics.getRowCount() + ' topics across ' + activeCats.getRowCount() + ' categories');
